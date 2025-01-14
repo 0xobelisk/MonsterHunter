@@ -1,0 +1,42 @@
+{
+  "projectName": "monster_hunter",
+  "network": "testnet",
+  "packageId": "0x85f95a4253621cac22ebfc27ec67b903c153e7b1bea5a2813c71fa62016746c7",
+  "schemas": [
+    {
+      "name": "0x85f95a4253621cac22ebfc27ec67b903c153e7b1bea5a2813c71fa62016746c7::entity_schema::Entity",
+      "objectId": "0x35830f03eda31ad3c33f1961868878edced6cd1d0fc036b73d934ce6f326108c",
+      "structure": {
+        "player": "StorageMap<address, bool>",
+        "monster": "StorageMap<address, MonsterType>",
+        "obstruction": "StorageMap<address, bool>",
+        "owned_by": "StorageMap<address, vector<address>>",
+        "encounterable": "StorageMap<address, bool>",
+        "moveable": "StorageMap<address, bool>"
+      }
+    },
+    {
+      "name": "0x85f95a4253621cac22ebfc27ec67b903c153e7b1bea5a2813c71fa62016746c7::dapp_schema::Dapp",
+      "objectId": "0x7f924f12308667e8ae07d6b086387b469e0f6ab65572a4f54344fc326ddd9385",
+      "structure": {}
+    },
+    {
+      "name": "0x85f95a4253621cac22ebfc27ec67b903c153e7b1bea5a2813c71fa62016746c7::encounter_schema::Encounter",
+      "objectId": "0xc043d44147426ae32ab93f37113b274b12656b0ee7ce675642c06db17522e9d5",
+      "structure": {
+        "monster_info": "StorageMap<address, MonsterInfo>",
+        "trigger": "StorageMap<address, bool>"
+      }
+    },
+    {
+      "name": "0x85f95a4253621cac22ebfc27ec67b903c153e7b1bea5a2813c71fa62016746c7::map_schema::Map",
+      "objectId": "0xfdbd2b83bf4d31ba69fb98a88393c9d926c0195678afaaeea89184c6a868193e",
+      "structure": {
+        "config": "StorageValue<MapConfig>",
+        "position": "StorageMap<address, Position>"
+      }
+    }
+  ],
+  "upgradeCap": "0x8ba9f17d0e6a642f535f8ce293cb9bbc73d0f39ebf989e3ef2ec02d5f32bd727",
+  "version": 1
+}

@@ -1,8 +1,8 @@
 import { DubheConfig } from '@0xobelisk/sui-common';
 
 export const dubheConfig = {
-  name: 'constantinople',
-  description: 'constantinople contract',
+  name: 'monster_hunter',
+  description: 'monster_hunter contract',
   data: {
     MonsterType: ["None", "Eagle", "Rat", "Caterpillar"],
     Direction: ["North", "East", "South", "West"],
