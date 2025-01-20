@@ -29,7 +29,7 @@ module monster_hunter::map_test {
     }
 
     #[test]
-    #[expected_failure(abort_code = monster_hunter::cannot_move_error::CannotMove)]
+    #[expected_failure(abort_code = monster_hunter::errors::CannotMove)]
     public fun move_position1(){
         let (mut scenario, dapp) = init_test::deploy_dapp_for_testing(@0x0);
         {
@@ -66,7 +66,7 @@ module monster_hunter::map_test {
     }
 
     #[test]
-    #[expected_failure(abort_code = monster_hunter::space_obstructed_error::SpaceObstructed)]
+    #[expected_failure(abort_code = monster_hunter::errors::SpaceObstructed)]
     public fun move_position2(){
         let (mut scenario, dapp) = init_test::deploy_dapp_for_testing(@0x0);
         {

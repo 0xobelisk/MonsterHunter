@@ -7,23 +7,20 @@ module monster_hunter::map_system {
     use sui::random;
     use monster_hunter::direction;
     use monster_hunter::direction::Direction;
-    use monster_hunter::not_registered_error;
-    use monster_hunter::cannot_move_error;
-    use monster_hunter::space_obstructed_error;
-    use monster_hunter::already_registered_error;
+    use monster_hunter::errors::{not_registered_error, cannot_move_error, space_obstructed_error, already_registered_error};
     use monster_hunter::position;
     use monster_hunter::monster_type;
 
     public fun register(schema: &mut Schema,  x: u64, y: u64, ctx: &mut TxContext) {
         let player = ctx.sender();
-        already_registered_error::require(!schema.player().contains(player));
+        already_registered_error(!schema.player().contains(player));
         // Constrain position to map size, wrapping around if necessary
         let (width, height, _) = schema.map_config()[].get();
         let x = (x + width) % width;
         let y = (y + height) % height;
 
         let space_addr = position_to_address(x, y);
-        space_obstructed_error::require(!schema.obstruction()[space_addr]);
+        space_obstructed_error(!schema.obstruction()[space_addr]);
 
         schema.player().set(player, true);
         schema.moveable().set(player, true);
@@ -52,10 +49,10 @@ module monster_hunter::map_system {
 
     public fun move_position(schema: &mut Schema, random: &Random, direction: Direction, ctx: &mut TxContext) {
         let player = ctx.sender();
-        not_registered_error::require(schema.moveable().contains(player));
-        cannot_move_error::require(schema.moveable()[player]);
+        not_registered_error(schema.moveable().contains(player));
+        cannot_move_error(schema.moveable()[player]);
         // Cannot move during an encounter
-        cannot_move_error::require(!schema.monster_info().contains(player));
+        cannot_move_error(!schema.monster_info().contains(player));
 
         let (mut x, mut y) = schema.position().get(player).get();
         if (direction == direction::new_north()) {
@@ -74,7 +71,7 @@ module monster_hunter::map_system {
         let y = (y + height) % height;
 
         let space_addr = position_to_address(x, y);
-        space_obstructed_error::require(!schema.obstruction()[space_addr]);
+        space_obstructed_error(!schema.obstruction()[space_addr]);
 
         schema.position().set(player, position::new(x, y));
 

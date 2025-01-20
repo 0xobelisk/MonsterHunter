@@ -35,10 +35,4 @@
                                    player,monster,result
                                }
   }
-
-  public fun emit(player: address, monster: address, result: MonsterCatchResult) {
-    event::emit(MonsterCatchAttemptEvent {
-                                   player,monster,result
-                               });
-  }
 }
