@@ -7,15 +7,15 @@
   module monster_hunter::direction {
 
   public enum Direction has copy, drop , store {
-                                North,East,South,West
+                                East,North,South,West
                         }
-
-  public fun new_north(): Direction {
-    Direction::North
-  }
 
   public fun new_east(): Direction {
     Direction::East
+  }
+
+  public fun new_north(): Direction {
+    Direction::North
   }
 
   public fun new_south(): Direction {

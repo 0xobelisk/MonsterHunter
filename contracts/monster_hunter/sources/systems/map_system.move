@@ -1,7 +1,7 @@
 module monster_hunter::map_system {
+    use monster_hunter::schema::Schema;
     use sui::bcs;
     use monster_hunter::monster_info;
-    use monster_hunter::encounter_schema::Encounter;
     use sui::address;
     use sui::random::{Random, RandomGenerator};
     use sui::random;
@@ -10,32 +10,30 @@ module monster_hunter::map_system {
     use monster_hunter::not_registered_error;
     use monster_hunter::cannot_move_error;
     use monster_hunter::space_obstructed_error;
-    use monster_hunter::entity_schema::Entity;
     use monster_hunter::already_registered_error;
-    use monster_hunter::map_schema::Map;
     use monster_hunter::position;
     use monster_hunter::monster_type;
 
-    public fun register(map: &mut Map, entity: &mut Entity,  x: u64, y: u64, ctx: &mut TxContext) {
+    public fun register(schema: &mut Schema,  x: u64, y: u64, ctx: &mut TxContext) {
         let player = ctx.sender();
-        already_registered_error::require(!entity.player().contains_key(player));
+        already_registered_error::require(!schema.player().contains(player));
         // Constrain position to map size, wrapping around if necessary
-        let (width, height, _) = map.config().get().get();
+        let (width, height, _) = schema.map_config()[].get();
         let x = (x + width) % width;
         let y = (y + height) % height;
 
         let space_addr = position_to_address(x, y);
-        space_obstructed_error::require(!entity.obstruction().get(space_addr));
+        space_obstructed_error::require(!schema.obstruction()[space_addr]);
 
-        entity.player().set(player, true);
-        entity.moveable().set(player, true);
-        entity.encounterable().set(player, true);
-        entity.owned_by().set(player, vector[]);
-        map.position().set(player, position::new(x, y));
+        schema.player().set(player, true);
+        schema.moveable().set(player, true);
+        schema.encounterable().set(player, true);
+        schema.owned_by().set(player, vector[]);
+        schema.position().set(player, position::new(x, y));
     }
 
 
-    fun start_encounter(entity: &mut Entity,  encounter: &mut Encounter, generator: &mut RandomGenerator, player: address) {
+    fun start_encounter(schema: &mut Schema, generator: &mut RandomGenerator, player: address) {
         let monster = random::generate_u256(generator);
         let mut monster_type = monster_type::new_none();
         if (monster % 4 == 1) {
@@ -47,19 +45,19 @@ module monster_hunter::map_system {
         };
 
         let monster = address::from_u256(monster);
-        entity.monster().set(monster, monster_type);
+        schema.monster().set(monster, monster_type);
         let monster_info = monster_info::new(monster, 0);
-        encounter.monster_info().set(player, monster_info);
+        schema.monster_info().set(player, monster_info);
     }
 
-    public fun move_position(map: &mut Map, entity: &mut Entity, encounter: &mut Encounter, random: &Random, direction: Direction, ctx: &mut TxContext) {
+    public fun move_position(schema: &mut Schema, random: &Random, direction: Direction, ctx: &mut TxContext) {
         let player = ctx.sender();
-        not_registered_error::require(entity.moveable().contains_key(player));
-        cannot_move_error::require(entity.moveable().get(player));
+        not_registered_error::require(schema.moveable().contains(player));
+        cannot_move_error::require(schema.moveable()[player]);
         // Cannot move during an encounter
-        cannot_move_error::require(!encounter.monster_info().contains_key(player));
+        cannot_move_error::require(!schema.monster_info().contains(player));
 
-        let (mut x, mut y) = map.position().get(player).get();
+        let (mut x, mut y) = schema.position().get(player).get();
         if (direction == direction::new_north()) {
             y = y - 1;
         } else if (direction == direction::new_east()) {
@@ -71,22 +69,22 @@ module monster_hunter::map_system {
         };
 
         // Constrain position to map size, wrapping around if necessary
-        let (width, height, _) = map.config().get().get();
+        let (width, height, _) = schema.map_config()[].get();
         let x = (x + width) % width;
         let y = (y + height) % height;
 
         let space_addr = position_to_address(x, y);
-        space_obstructed_error::require(!entity.obstruction().get(space_addr));
+        space_obstructed_error::require(!schema.obstruction()[space_addr]);
 
-        map.position().set(player, position::new(x, y));
+        schema.position().set(player, position::new(x, y));
 
         let mut generator = random::new_generator(random, ctx);
         let rand = random::generate_u128(&mut generator);
         // std::debug::print(&rand);
 
-        if(entity.player().get(player) && encounter.trigger().get(space_addr)) {
+        if(schema.player()[player] && schema.encounter_trigger()[space_addr]) {
             if (rand % 5 == 0) {
-                start_encounter(entity, encounter, &mut generator, player);
+                start_encounter(schema, &mut generator, player);
             }
         }
     }

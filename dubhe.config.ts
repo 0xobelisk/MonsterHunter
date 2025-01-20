@@ -27,21 +27,15 @@ export const dubheConfig = {
     }
   },
   schemas: {
-    entity: {
-      player: 'StorageMap<address, bool>',
-      monster: 'StorageMap<address, MonsterType>',
-      obstruction: 'StorageMap<address, bool>',
-      owned_by: 'StorageMap<address, vector<address>>',
-      encounterable: 'StorageMap<address, bool>',
-      moveable: 'StorageMap<address, bool>',
-    },
-    map: {
-      config: 'StorageValue<MapConfig>',
-      position: 'StorageMap<address, Position>',
-    },
-    encounter : {
-      monster_info: 'StorageMap<address, MonsterInfo>',
-      trigger: 'StorageMap<address, bool>',
-    },
-  },
+    player: 'StorageMap<address, bool>',
+    encounterable: 'StorageMap<address, bool>',
+    moveable: 'StorageMap<address, bool>',
+    obstruction: 'StorageMap<address, bool>',
+    encounter_trigger: 'StorageMap<address, bool>',
+    monster: 'StorageMap<address, MonsterType>',
+    owned_by: 'StorageMap<address, vector<address>>',
+    map_config: 'StorageValue<MapConfig>',
+    position: 'StorageMap<address, Position>',
+    monster_info: 'StorageMap<address, MonsterInfo>',
+    }
 } as DubheConfig;

@@ -1,35 +1,29 @@
 #[test_only]
 module monster_hunter::map_test {
     use std::debug;
+    use monster_hunter::schema::Schema;
     use monster_hunter::position;
     use sui::random::Random;
     use sui::random;
     use sui::test_scenario;
     use monster_hunter::map_system;
-    use monster_hunter::entity_schema::Entity;
-    use monster_hunter::map_schema::Map;
     use monster_hunter::direction;
-    use monster_hunter::encounter_schema::Encounter;
     use monster_hunter::init_test;
 
     #[test]
     public fun register(){
        let (mut scenario, dapp) = init_test::deploy_dapp_for_testing(@0xA);
-        let mut map = test_scenario::take_shared<Map>(&scenario);
-        let mut entity = test_scenario::take_shared<Entity>(&scenario);
-        let encounter = test_scenario::take_shared<Encounter>(&scenario);
+        let mut schema = test_scenario::take_shared<Schema>(&scenario);
 
         let ctx = test_scenario::ctx(&mut scenario);
-        map_system::register(&mut map, &mut entity, 0, 0, ctx);
+        map_system::register(&mut schema, 0, 0, ctx);
 
-        assert!(entity.player().contains_key(ctx.sender()));
-        assert!(entity.moveable().contains_key(ctx.sender()));
-        assert!(entity.borrow_encounterable().contains_key(ctx.sender()));
-        assert!(map.position().contains_key(ctx.sender()));
+        assert!(schema.player().contains(ctx.sender()));
+        assert!(schema.moveable().contains(ctx.sender()));
+        assert!(schema.encounterable().contains(ctx.sender()));
+        assert!(schema.position().contains(ctx.sender()));
 
-        test_scenario::return_shared(encounter);
-        test_scenario::return_shared(entity);
-        test_scenario::return_shared(map);
+        test_scenario::return_shared(schema);
         dapp.distroy_dapp_for_testing();
         scenario.end();
     }
@@ -42,37 +36,31 @@ module monster_hunter::map_test {
             random::create_for_testing(scenario.ctx());
             scenario.next_tx(@0xA);
         };
-
-        let mut map = test_scenario::take_shared<Map>(&scenario);
-        let mut entity = test_scenario::take_shared<Entity>(&scenario);
-        let mut encounter = test_scenario::take_shared<Encounter>(&scenario);
+        let mut schema = test_scenario::take_shared<Schema>(&scenario);
         let random = test_scenario::take_shared<Random>(&scenario);
 
         let ctx = test_scenario::ctx(&mut scenario);
-        map_system::register(&mut map, &mut entity, 0, 0, ctx);
+        map_system::register(&mut schema, 0, 0, ctx);
 
-        map_system::move_position(&mut map, &mut entity, &mut encounter, &random, direction::new_east(), ctx);
-        assert!(map.position().get(ctx.sender()) == position::new(1, 0));
+        map_system::move_position(&mut schema, &random, direction::new_east(), ctx);
+        assert!(schema.position()[ctx.sender()] == position::new(1, 0));
 
-        map_system::move_position(&mut map, &mut entity, &mut encounter, &random, direction::new_south(), ctx);
-        assert!(map.position().get(ctx.sender()) == position::new(1, 1));
+        map_system::move_position(&mut schema, &random, direction::new_south(), ctx);
+        assert!(schema.position()[ctx.sender()] == position::new(1, 1));
 
-        map_system::move_position(&mut map, &mut entity, &mut encounter, &random, direction::new_east(), ctx);
-        assert!(map.position().get(ctx.sender()) == position::new(2, 1));
+        map_system::move_position(&mut schema, &random, direction::new_east(), ctx);
+        assert!(schema.position()[ctx.sender()] == position::new(2, 1));
 
-        map_system::move_position(&mut map, &mut entity, &mut encounter, &random, direction::new_south(), ctx);
-        map_system::move_position(&mut map, &mut entity, &mut encounter, &random, direction::new_south(), ctx);
-        map_system::move_position(&mut map, &mut entity, &mut encounter, &random, direction::new_south(), ctx);
-        assert!(map.position().get(ctx.sender()) == position::new(2, 4));
+        map_system::move_position(&mut schema, &random, direction::new_south(), ctx);
+        map_system::move_position(&mut schema, &random, direction::new_south(), ctx);
+        map_system::move_position(&mut schema, &random, direction::new_south(), ctx);
+        assert!(schema.position()[ctx.sender()] == position::new(2, 4));
 
         // Cannot move during an encounter
-        map_system::move_position(&mut map, &mut entity, &mut encounter, &random, direction::new_south(), ctx);
+        map_system::move_position(&mut schema, &random, direction::new_south(), ctx);
 
         test_scenario::return_shared(random);
-        test_scenario::return_shared(encounter);
-        test_scenario::return_shared(entity);
-        test_scenario::return_shared(map);
-
+        test_scenario::return_shared(schema);
         dapp.distroy_dapp_for_testing();
         scenario.end();
     }
@@ -86,37 +74,32 @@ module monster_hunter::map_test {
             scenario.next_tx(@0xA);
         };
 
-        let mut map = test_scenario::take_shared<Map>(&scenario);
-        let mut entity = test_scenario::take_shared<Entity>(&scenario);
-        let mut encounter = test_scenario::take_shared<Encounter>(&scenario);
+        let mut schema = test_scenario::take_shared<Schema>(&scenario);
         let random = test_scenario::take_shared<Random>(&scenario);
 
         let ctx = test_scenario::ctx(&mut scenario);
-        map_system::register(&mut map, &mut entity, 0, 0, ctx);
+        map_system::register(&mut schema, 0, 0, ctx);
 
-        map_system::move_position(&mut map, &mut entity, &mut encounter, &random, direction::new_south(), ctx);
-        map_system::move_position(&mut map, &mut entity, &mut encounter, &random, direction::new_south(), ctx);
-        map_system::move_position(&mut map, &mut entity, &mut encounter, &random, direction::new_south(), ctx);
-        map_system::move_position(&mut map, &mut entity, &mut encounter, &random, direction::new_south(), ctx);
-        map_system::move_position(&mut map, &mut entity, &mut encounter, &random, direction::new_south(), ctx);
-        assert!(map.position().get(ctx.sender()) == position::new(0, 5));
+        map_system::move_position(&mut schema, &random, direction::new_south(), ctx);
+        map_system::move_position(&mut schema, &random, direction::new_south(), ctx);
+        map_system::move_position(&mut schema, &random, direction::new_south(), ctx);
+        map_system::move_position(&mut schema, &random, direction::new_south(), ctx);
+        map_system::move_position(&mut schema, &random, direction::new_south(), ctx);
+        assert!(schema.position()[ctx.sender()] == position::new(0, 5));
 
-        map_system::move_position(&mut map, &mut entity, &mut encounter, &random, direction::new_east(), ctx);
-        map_system::move_position(&mut map, &mut entity, &mut encounter, &random, direction::new_east(), ctx);
-        assert!(map.position().get(ctx.sender()) == position::new(2, 5));
+        map_system::move_position(&mut schema, &random, direction::new_east(), ctx);
+        map_system::move_position(&mut schema, &random, direction::new_east(), ctx);
+        assert!(schema.position()[ctx.sender()] == position::new(2, 5));
 
         // // Cannot move during an encounter
-        map_system::move_position(&mut map, &mut entity, &mut encounter, &random, direction::new_east(), ctx);
-        assert!(map.position().get(ctx.sender()) == position::new(3, 5));
+        map_system::move_position(&mut schema, &random, direction::new_east(), ctx);
+        assert!(schema.position()[ctx.sender()] == position::new(3, 5));
 
-        let terrains = map.config().get().get_terrain();
+        let terrains = schema.map_config().get().get_terrain();
         debug::print(&terrains[3][5]);
 
         test_scenario::return_shared(random);
-        test_scenario::return_shared(encounter);
-        test_scenario::return_shared(entity);
-        test_scenario::return_shared(map);
-
+        test_scenario::return_shared(schema);
         dapp.distroy_dapp_for_testing();
         scenario.end();
     }
