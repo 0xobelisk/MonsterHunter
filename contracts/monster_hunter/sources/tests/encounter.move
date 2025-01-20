@@ -54,6 +54,7 @@ module monster_hunter::encounter_test {
         test_scenario::return_shared(random);
         test_scenario::return_shared(schema);
         dapp.distroy_dapp_for_testing();
+
         scenario.end();
     }
 
