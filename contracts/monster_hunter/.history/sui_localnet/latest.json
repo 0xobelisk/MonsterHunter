@@ -1,9 +1,20 @@
 {
-  "projectName": "constantinople",
+  "projectName": "monster_hunter",
   "network": "localnet",
-  "packageId": "0xc349ea9ff90c7b91f099d2bc746e45be166121e6f566f06f044a2dcbfa61bf29",
-  "worldId": "0xbd9948744d091e55ac3b9e344334a05f04cf81b8fbc737acfafffa116d17709b",
-  "upgradeCap": "0x5391c65dca68826b406049ef530b9ba8f15e1469a40f85aeedf718d7b1278d18",
-  "adminCap": "0xf2a01d19616a6ec372c95633190cdf35a773c5ac513eedacd3f9cd22c91d045d",
+  "packageId": "0x2fada7071645035dee19268477a92b37cce87c1eac8c459b49f2cef445e7a7fd",
+  "schemaId": "0x51e2df05525a6ec39742cee739edd5100582842c56de178a41e771038585b9db",
+  "schemas": {
+    "player": "StorageMap<address, bool>",
+    "encounterable": "StorageMap<address, bool>",
+    "moveable": "StorageMap<address, bool>",
+    "obstruction": "StorageMap<address, bool>",
+    "encounter_trigger": "StorageMap<address, bool>",
+    "monster": "StorageMap<address, MonsterType>",
+    "owned_by": "StorageMap<address, vector<address>>",
+    "map_config": "StorageValue<MapConfig>",
+    "position": "StorageMap<address, Position>",
+    "monster_info": "StorageMap<address, MonsterInfo>"
+  },
+  "upgradeCap": "0x117c26cd9da27c2258e8b262cc4714e778babcc4fb044d075674fb796e485461",
   "version": 1
 }
