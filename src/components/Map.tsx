@@ -249,14 +249,20 @@ export default function Map() {
     console.log(stepTransactionsItem);
     console.log(mapData.map[newPosition.top / stepLength][newPosition.left / stepLength]);
     console.log(
-      mapData.map[newPosition.top / stepLength][newPosition.left / stepLength] === mapData.ele_description.tussock[0],
+      withinRange(
+        mapData.map[newPosition.top / stepLength][newPosition.left / stepLength],
+        mapData.ele_description.tussock,
+      ),
     );
     if (
-      mapData.map[newPosition.top / stepLength][newPosition.left / stepLength] === mapData.ele_description.tussock[0]
+      withinRange(
+        mapData.map[newPosition.top / stepLength][newPosition.left / stepLength],
+        mapData.ele_description.tussock,
+      )
     ) {
       console.log('------------- in tussock');
 
-      await savingGameWorld(true);
+      const txHash = await savingGameWorld(true);
 
       const dubhe = new Dubhe({
         networkType: NETWORK,
@@ -264,19 +270,15 @@ export default function Map() {
         metadata: contractMetadata,
         // secretKey: PRIVATEKEY,
       });
-
-      // let player_data = await obelisk.getEntity(WORLD_ID, 'position', obelisk.getAddress());
-      // public fun get_position(self: &Map, key: address): &Position {
-
-      let positionTx = new Transaction();
-
-      let player_data = dubhe.view(
-        (await dubhe.query.map.get_position({
-          tx: positionTx,
-          params: [positionTx.object(SCHEMA_ID), positionTx.pure.address(signerAddress)],
-        })) as DevInspectResults,
-      );
-
+      console.log(txHash);
+      const txResponse = await dubhe.waitForTransaction(txHash);
+      console.log(txResponse);
+      const mapPositionTx = new Transaction();
+      const player_data = await dubhe.state({
+        tx: mapPositionTx,
+        schema: 'position',
+        params: [mapPositionTx.object(SCHEMA_ID), mapPositionTx.pure.address(signerAddress)],
+      });
       console.log('======== encounter info ========');
       let enconterTx = new Transaction();
       const encounter_info = await dubhe.state({
@@ -284,23 +286,11 @@ export default function Map() {
         schema: 'monster_info',
         params: [enconterTx.object(SCHEMA_ID), enconterTx.pure.address(signerAddress)],
       });
-
+      console.log(encounter_info);
       let encounter_contain = false;
       if (encounter_info !== undefined) {
         encounter_contain = true;
       }
-
-      // let encounter_contain = false;
-      // try {
-      //   await dubhe.query.encounter.get_monster_info({
-      //     tx: enconterTx,
-      //     params: [enconterTx.object(Encounter_Object_Id), enconterTx.pure.address(dubhe.getAddress())],
-      //   });
-
-      //   encounter_contain =
-      // } catch (e) {
-      //   console.log(e);
-      // }
 
       const stepLength = 2.5;
       setHero({
@@ -321,7 +311,7 @@ export default function Map() {
     }
   };
 
-  const savingGameWorld = async (byLock?: boolean) => {
+  const savingGameWorld = async (byLock?: boolean): Promise<string> => {
     if (byLock === true) {
       setHero({
         ...hero,
@@ -340,71 +330,49 @@ export default function Map() {
       });
       const stepTxB = new Transaction();
       let schemaObject = stepTxB.object(SCHEMA_ID);
-      let randomObject = stepTxB.object('0x8');
+      let clockObject = stepTxB.object.clock();
 
-      let direction1 = (await dubhe.tx.direction.new_east({
-        tx: stepTxB,
-        isRaw: true,
-      })) as TransactionResult;
-
-      (await dubhe.tx.map_system.move_position({
-        tx: stepTxB,
-        params: [schemaObject, randomObject, direction1],
-        isRaw: true,
-      })) as TransactionResult;
-      let direction2 = (await dubhe.tx.direction.new_east({
-        tx: stepTxB,
-        isRaw: true,
-      })) as TransactionResult;
-
-      (await dubhe.tx.map_system.move_position({
-        tx: stepTxB,
-        params: [schemaObject, randomObject, direction2],
-        isRaw: true,
-      })) as TransactionResult;
-
-      console.log(stepTransactionsItem);
-      // for (let historyDirection of stepTransactionsItem) {
-      //   let direction = null;
-      //   switch (historyDirection[2]) {
-      //     case 'left':
-      //       console.log('left');
-      //       direction = (await dubhe.tx.direction.new_west({
-      //         tx: stepTxB,
-      //         isRaw: true,
-      //       })) as TransactionResult;
-      //       break;
-      //     case 'top':
-      //       console.log('top');
-      //       direction = (await dubhe.tx.direction.new_north({
-      //         tx: stepTxB,
-      //         isRaw: true,
-      //       })) as TransactionResult;
-      //       break;
-      //     case 'right':
-      //       console.log('right');
-      //       direction = (await dubhe.tx.direction.new_east({
-      //         tx: stepTxB,
-      //         isRaw: true,
-      //       })) as TransactionResult;
-      //       break;
-      //     case 'bottom':
-      //       console.log('bottom');
-      //       direction = (await dubhe.tx.direction.new_south({
-      //         tx: stepTxB,
-      //         isRaw: true,
-      //       })) as TransactionResult;
-      //       break;
-      //     default:
-      //       break;
-      //   }
-      //   await dubhe.tx.map_system.move_position({
-      //     tx: stepTxB,
-      //     params: [schemaObject, randomObject, direction],
-      //     isRaw: true,
-      //   });
-      // }
-
+      for (let historyDirection of stepTransactionsItem) {
+        let direction = null;
+        switch (historyDirection[2]) {
+          case 'left':
+            console.log('left');
+            direction = (await dubhe.tx.direction.new_west({
+              tx: stepTxB,
+              isRaw: true,
+            })) as TransactionResult;
+            break;
+          case 'top':
+            console.log('top');
+            direction = (await dubhe.tx.direction.new_north({
+              tx: stepTxB,
+              isRaw: true,
+            })) as TransactionResult;
+            break;
+          case 'right':
+            console.log('right');
+            direction = (await dubhe.tx.direction.new_east({
+              tx: stepTxB,
+              isRaw: true,
+            })) as TransactionResult;
+            break;
+          case 'bottom':
+            console.log('bottom');
+            direction = (await dubhe.tx.direction.new_south({
+              tx: stepTxB,
+              isRaw: true,
+            })) as TransactionResult;
+            break;
+          default:
+            break;
+        }
+        await dubhe.tx.map_system.move_position({
+          tx: stepTxB,
+          params: [schemaObject, clockObject, direction],
+          isRaw: true,
+        });
+      }
+      let txHash = null;
       await signAndExecuteTransaction(
         {
           transaction: stepTxB.serialize(),
@@ -412,6 +380,7 @@ export default function Map() {
         },
         {
           onSuccess: async result => {
+            txHash = result.digest;
             // Wait for a short period before querying the latest data
             setTimeout(async () => {
               toast('Transaction Successful', {
@@ -428,6 +397,7 @@ export default function Map() {
           },
         },
       );
+      return txHash;
     }
   };
 
@@ -507,41 +477,30 @@ export default function Map() {
     return !withinRange(mapData.map[x][y], mapData.ele_description.walkable);
   };
 
-  const ifInRange = (npcX: number, npcY: number) => {
-    const currentPosition = getCoordinate(stepLength);
-    if (
-      (currentPosition.x === npcX && (currentPosition.y - npcY == 1 || currentPosition.y - npcY == -1)) ||
-      (currentPosition.y === npcY && (currentPosition.x - npcX == 1 || currentPosition.x - npcX == -1))
-    ) {
-      return true;
-    }
-    return false;
-  };
-
-  const onInteract = async (npcX: number, npcY: number) => {
-    const currentPosition = getCoordinate(stepLength);
-    // check if npc is in range
-    if (
-      (currentPosition.x === npcX && (currentPosition.y - npcY == 1 || currentPosition.y - npcY == -1)) ||
-      (currentPosition.y === npcY && (currentPosition.x - npcX == 1 || currentPosition.x - npcX == -1))
-    ) {
-      // await interactNpc({x: npcX, y: npcY});
-      const targetBlock = mapData.map[npcX][npcY];
-      console.log(targetBlock);
-      if (withinRange(targetBlock, mapData.ele_description.sprite)) {
-        // await interactNpc({x: npcX, y: npcY});
-        await interactNpc();
-      } else if (withinRange(targetBlock, mapData.ele_description.object)) {
-        openTreasureBox({ x: npcX, y: npcY });
-        // } else if (withinRange(targetBlock, mapData.ele_description.obelisk_bottom)) {
-        //   openTreasureBox({ x: npcX, y: npcY });
-        // } else if (withinRange(targetBlock, mapData.ele_description.old_man)) {
-        //   openTreasureBox({ x: npcX, y: npcY });
-        // } else if (withinRange(targetBlock, mapData.ele_description.fat_man)) {
-        //   openTreasureBox({ x: npcX, y: npcY });
-      }
-    }
-  };
+  // const onInteract = async (npcX: number, npcY: number) => {
+  //   const currentPosition = getCoordinate(stepLength);
+  //   // check if npc is in range
+  //   if (
+  //     (currentPosition.x === npcX && (currentPosition.y - npcY == 1 || currentPosition.y - npcY == -1)) ||
+  //     (currentPosition.y === npcY && (currentPosition.x - npcX == 1 || currentPosition.x - npcX == -1))
+  //   ) {
+  //     // await interactNpc({x: npcX, y: npcY});
+  //     const targetBlock = mapData.map[npcX][npcY];
+  //     console.log(targetBlock);
+  //     if (withinRange(targetBlock, mapData.ele_description.sprite)) {
+  //       // await interactNpc({x: npcX, y: npcY});
+  //       await interactNpc();
+  //     } else if (withinRange(targetBlock, mapData.ele_description.object)) {
+  //       openTreasureBox({ x: npcX, y: npcY });
+  //       // } else if (withinRange(targetBlock, mapData.ele_description.obelisk_bottom)) {
+  //       //   openTreasureBox({ x: npcX, y: npcY });
+  //       // } else if (withinRange(targetBlock, mapData.ele_description.old_man)) {
+  //       //   openTreasureBox({ x: npcX, y: npcY });
+  //       // } else if (withinRange(targetBlock, mapData.ele_description.fat_man)) {
+  //       //   openTreasureBox({ x: npcX, y: npcY });
+  //     }
+  //   }
+  // };
 
   const interact = async (direction: string) => {
     if (!direction) {
@@ -577,82 +536,6 @@ export default function Map() {
       default:
         break;
     }
-    const targetBlock = mapData.map[targetPosition.x][targetPosition.y];
-    // console.log(targetBlock)
-    // console.log(mapData.ele_description.sprite)
-    // console.log(withinRange(targetBlock, mapData.ele_description.sprite))
-
-    // if (withinRange(targetBlock, mapData.ele_description.sprite)) {
-    //   await interactNpc();
-    // } else if (withinRange(targetBlock, mapData.ele_description.object)) {
-    //   openTreasureBox(targetPosition);
-    // } else if (withinRange(targetBlock, mapData.ele_description.obelisk_bottom)) {
-    //   console.log('claim');
-    //   await savingGameWorld(true);
-    //   await interactNpc();
-
-    //   setHero({
-    //     ...hero,
-    //     lock: false,
-    //   });
-    // } else if (withinRange(targetBlock, mapData.ele_description.old_man)) {
-    //   console.log('-------22');
-    //   await savingGameWorld(true);
-    //   await interactOldManNpc();
-
-    //   setHero({
-    //     ...hero,
-    //     lock: false,
-    //   });
-    // } else if (withinRange(targetBlock, mapData.ele_description.fat_man)) {
-    //   await savingGameWorld(true);
-    //   await interactOldManNpc();
-
-    //   setHero({
-    //     ...hero,
-    //     lock: false,
-    //   });
-    // } else if (withinRange(targetBlock, mapData.ele_description.big_house_33)) {
-    //   await interactHouseDoor();
-    // } else if (withinRange(targetBlock, mapData.ele_description.small_house_24)) {
-    //   await interactHouseDoor();
-    // }
-  };
-
-  const interactNpc = async () => {
-    const interactResponse = await getInteractResponse();
-    console.log(interactResponse);
-    // if (interactResponse.error_code === 0) {
-    // const dialogContent = interactResponse.result.event.payload.first;
-    const dialogContent = interactResponse;
-    showNpcDialog(dialogContent);
-    // }
-  };
-
-  const interactOldManNpc = async () => {
-    const interactResponse = await getOldManResponse();
-    const dialogContent = interactResponse;
-    showNpcDialog(dialogContent);
-  };
-
-  const interactHouseDoor = async () => {
-    showNpcDialog({
-      text: "We're renovating now.",
-      btn: {
-        yes: 'Good',
-        no: 'see you',
-      },
-    });
-  };
-
-  const interactSaveingWorld = async () => {
-    showNpcDialog({
-      text: 'Saving...',
-      btn: {
-        yes: 'yes',
-        no: 'go',
-      },
-    });
   };
 
   const interactPVP = () => {
@@ -694,26 +577,26 @@ export default function Map() {
     treasureBox.children[0]['src'] = require('../assets/img/block/treasure-unlocked-1.png');
   };
 
-  const getInteractResponse = async () => {
-    const { x, y } = targetPosition;
+  // const getInteractResponse = async () => {
+  //   const { x, y } = targetPosition;
 
-    // let interactApi = `https://indexer.obelisk.build?x=${y}&y=${x}&block_height=${blockNumber}`;
+  //   // let interactApi = `https://indexer.obelisk.build?x=${y}&y=${x}&block_height=${blockNumber}`;
 
-    // let interactResponse = await axios
-    //   .get(interactApi)
-    //   .catch((err) => {
-    //     console.log(err);
-    //   });
+  //   // let interactResponse = await axios
+  //   //   .get(interactApi)
+  //   //   .catch((err) => {
+  //   //     console.log(err);
+  //   //   });
 
-    // return interactResponse.data;
-    return {
-      text: 'hello, obelisk!',
-      btn: {
-        yes: 'yes',
-        no: 'no',
-      },
-    };
-  };
+  //   // return interactResponse.data;
+  //   return {
+  //     text: 'hello, obelisk!',
+  //     btn: {
+  //       yes: 'yes',
+  //       no: 'no',
+  //     },
+  //   };
+  // };
 
   const getOldManResponse = async () => {
     const { x, y } = targetPosition;

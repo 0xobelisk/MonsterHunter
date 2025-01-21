@@ -58,7 +58,7 @@ const Home = () => {
         params,
         isRaw: true,
       });
-      await signAndExecuteTransaction(
+      const { digest } = await signAndExecuteTransaction(
         {
           transaction: registerTx.serialize(),
           chain: `sui:${NETWORK}`,
@@ -82,7 +82,7 @@ const Home = () => {
           },
         },
       );
-
+      await dubhe.waitForTransaction(digest);
       // await obelisk.tx.map_system.register(tx, params);
       //   alert('Fetch sui api error!');
       // } else {
@@ -90,14 +90,13 @@ const Home = () => {
     console.log('======== v1 end ========');
     // let player_data = await obelisk.getEntity(WORLD_ID, 'position', address);
     const entityPositionTx = new Transaction();
-    let player_data = (
-      await dubhe.state({
-        tx: entityPositionTx,
-        schema: 'position',
-        params: [entityPositionTx.object(SCHEMA_ID), entityPositionTx.pure.address(signerAddress)],
-      })
-    )[0];
+    let player_data = await dubhe.state({
+      tx: entityPositionTx,
+      schema: 'position',
+      params: [entityPositionTx.object(SCHEMA_ID), entityPositionTx.pure.address(signerAddress)],
+    });
     console.log('======== v1 player_data ========');
+    console.log('player_data structure:', player_data);
     console.log(player_data);
 
     const mapConfigTx = new Transaction();
@@ -143,7 +142,10 @@ const Home = () => {
     const stepLength = 2.5;
     setHero({
       name: signerAddress,
-      position: { left: player_data['x'] * stepLength, top: player_data['y'] * stepLength },
+      position: {
+        left: (player_data && player_data[0].x ? player_data[0].x : 0) * stepLength,
+        top: (player_data && player_data[0].y ? player_data[0].y : 0) * stepLength,
+      },
       lock: encounter_contain!,
     });
     setMonster({

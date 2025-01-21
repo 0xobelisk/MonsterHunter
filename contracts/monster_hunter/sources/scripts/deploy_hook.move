@@ -29,6 +29,7 @@
                 vector [o, o, o, o, o, o, o, t, t, t, o, b, t, o, t],
                 vector [o, b, o, o, o, b, o, o, t, t, o, b, o, o, t],
                 vector [o, o, b, o, o, o, t, o, t, t, o, o, b, t, t],
+                vector [o, o, b, o, o, o, t, o, t, t, o, o, b, t, t],
             ];
 
         let height = terrains.length();
