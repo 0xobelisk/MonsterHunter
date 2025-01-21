@@ -1,4 +1,5 @@
 module monster_hunter::map_system {
+    use sui::clock::Clock;
     use monster_hunter::schema::Schema;
     use sui::bcs;
     use monster_hunter::monster_info;
@@ -30,8 +31,8 @@ module monster_hunter::map_system {
     }
 
 
-    fun start_encounter(schema: &mut Schema, generator: &mut RandomGenerator, player: address) {
-        let monster = random::generate_u256(generator);
+    fun start_encounter(schema: &mut Schema, clock: &Clock, player: address) {
+        let monster = sui::clock::timestamp_ms(clock) as u256;
         let mut monster_type = monster_type::new_none();
         if (monster % 4 == 1) {
             monster_type = monster_type::new_eagle();
@@ -47,7 +48,7 @@ module monster_hunter::map_system {
         schema.monster_info().set(player, monster_info);
     }
 
-    public fun move_position(schema: &mut Schema, random: &Random, direction: Direction, ctx: &mut TxContext) {
+    public fun move_position(schema: &mut Schema, clock: &Clock, direction: Direction, ctx: &mut TxContext) {
         let player = ctx.sender();
         not_registered_error(schema.moveable().contains(player));
         cannot_move_error(schema.moveable()[player]);
@@ -75,13 +76,14 @@ module monster_hunter::map_system {
 
         schema.position().set(player, position::new(x, y));
 
-        let mut generator = random::new_generator(random, ctx);
-        let rand = random::generate_u128(&mut generator);
+        // let mut generator = random::new_generator(random, ctx);
+        // let rand = random::generate_u128(&mut generator);
         // std::debug::print(&rand);
 
+        let rand = sui::clock::timestamp_ms(clock);
         if(schema.player()[player] && schema.encounter_trigger()[space_addr]) {
-            if (rand % 5 == 0) {
-                start_encounter(schema, &mut generator, player);
+            if (rand % 2 == 0) {
+                start_encounter(schema, clock, player);
             }
         }
     }
