@@ -1,12 +1,13 @@
-import { Obelisk, TransactionBlock } from '@0xobelisk/sui-client';
+import { DevInspectResults, Dubhe, Transaction } from '@0xobelisk/sui-client';
 import { useEffect, useState, useRef, useMemo, ReactElement } from 'react';
 
 import { useAtom, useSetAtom, useAtomValue } from 'jotai';
-import { MapData, ContractMetadata, Dialog, SendTxLog, Hero, Monster, OwnedMonster } from '../state';
-import { NETWORK, PACKAGE_ID, WORLD_ID } from '../chain/config';
+import { MapData, ContractMetadata, Dialog, SendTxLog, Hero, Monster, OwnedMonster, TerrainItemType } from '../state';
+import { NETWORK, PACKAGE_ID, SCHEMA_ID } from '../chain/config';
 // import { PRIVATEKEY } from '../chain/key';
 import { TransactionResult } from '@0xobelisk/sui-client/src';
-import { useWallet } from '@suiet/wallet-kit';
+import { ConnectButton, useCurrentWallet, useSignAndExecuteTransaction, useCurrentAccount } from '@mysten/dapp-kit';
+import { toast } from 'sonner';
 
 export default function Map() {
   const treasureCount = 2;
@@ -19,7 +20,9 @@ export default function Map() {
     D: 'assets/player/D.gif',
   };
 
-  const wallet = useWallet();
+  const { mutateAsync: signAndExecuteTransaction } = useSignAndExecuteTransaction();
+  const { connectionStatus } = useCurrentWallet();
+  const signerAddress = useCurrentAccount()?.address;
 
   const [heroImg, setHeroImg] = useState(playerSprites['S']);
 
@@ -51,37 +54,49 @@ export default function Map() {
     setRowNumber(row);
   };
 
-  const withinRange = (value: number, arr: number[]) => {
-    if (arr.length === 1) {
-      return value === arr[0];
-    } else if (arr.length > 1) {
-      return value >= arr[0] && value <= arr[1];
-    }
+  const isTerrainItem = (item: any): item is TerrainItemType => {
+    return item && typeof item === 'object' && '$kind' in item;
   };
 
-  const initialRandomState = () => {
-    if (mapData.map.length === 0) {
-      return {};
+  const withinRange = (value: TerrainItemType, arr: TerrainItemType[]) => {
+    if (!isTerrainItem(value) || !Array.isArray(arr)) {
+      return false;
     }
-    let randomState = {};
-    // console.log(mapData.map[0]);
-    for (let i = 0; i < mapData.map.length; i++) {
-      for (let j = 0; j < 32; j++) {
-        let key = `${i}-${j}`;
-        randomState[key] = Math.floor(Math.random() * spriteCount + 1);
-        if (
-          mapData.ele_description.object !== undefined &&
-          withinRange(mapData.map[i][j], mapData.ele_description.object)
-        ) {
-          randomState[key] = Math.floor(Math.random() * treasureCount + 1);
-        } else if (withinRange(mapData.map[i][j], mapData.ele_description.sprite)) {
-          randomState[key] = Math.floor(Math.random() * spriteCount + 1);
-        }
+
+    let result = false;
+    arr.forEach(item => {
+      if (isTerrainItem(item) && item.$kind === value.$kind) {
+        result = true;
       }
-    }
-    // setRandomState(randomState);
-    return randomState;
+    });
+    return result;
   };
+
+  // const initialRandomState = () => {
+  //   console.log('initialRandomState');
+  //   console.log(mapData);
+  //   if (mapData.map.length === 0) {
+  //     return {};
+  //   }
+  //   let randomState = {};
+  //   // console.log(mapData.map[0]);
+  //   for (let i = 0; i < mapData.map.length; i++) {
+  //     for (let j = 0; j < 32; j++) {
+  //       let key = `${i}-${j}`;
+  //       randomState[key] = Math.floor(Math.random() * spriteCount + 1);
+  //       if (
+  //         mapData.ele_description.object !== undefined &&
+  //         withinRange(mapData.map[i][j], mapData.ele_description.object)
+  //       ) {
+  //         randomState[key] = Math.floor(Math.random() * treasureCount + 1);
+  //       } else if (withinRange(mapData.map[i][j], mapData.ele_description.sprite)) {
+  //         randomState[key] = Math.floor(Math.random() * spriteCount + 1);
+  //       }
+  //     }
+  //   }
+  //   // setRandomState(randomState);
+  //   return randomState;
+  // };
 
   const initialEvents = () => {
     if (mapData.events.length === 0) {
@@ -96,8 +111,9 @@ export default function Map() {
     return eventsDict;
   };
 
-  let randomState1 = useMemo(() => initialRandomState(), [mapData]);
+  // let randomState1 = useMemo(() => initialRandomState(), [mapData]);
   let eventsState = useMemo(() => initialEvents(), [mapData]);
+
   const setBlockType = (map: any[][], x: number, y: number, ele_description: any, blockType: any, key: any) => {
     let img: ReactElement;
     let className = '';
@@ -109,222 +125,38 @@ export default function Map() {
       ) : (
         ''
       );
+    // console.log(map[x][y]);
     if (withinRange(map[x][y], ele_description.green)) {
       className = 'walkable green';
     } else if (withinRange(map[x][y], ele_description.small_tree)) {
       className = 'unwalkable small-tree-img';
-    } else if (withinRange(map[x][y], ele_description.flower)) {
-      className = 'walkable flower-img';
-    } else if (withinRange(map[x][y], ele_description.tree_top)) {
-      className = 'unwalkable tree-top-img';
-    } else if (withinRange(map[x][y], ele_description.tree_bottom)) {
-      className = 'unwalkable tree-bottom-img';
     } else if (withinRange(map[x][y], ele_description.tussock)) {
       className = 'walkable tussock';
-    } else if (withinRange(map[x][y], ele_description.ground_top_1)) {
-      className = 'walkable ground-img-1';
-    } else if (withinRange(map[x][y], ele_description.ground_top_2)) {
-      className = 'walkable ground-img-2';
-    } else if (withinRange(map[x][y], ele_description.ground_top_3)) {
-      className = 'walkable ground-img-3';
-    } else if (withinRange(map[x][y], ele_description.ground_middle_1)) {
-      className = 'walkable ground-img-4';
-    } else if (withinRange(map[x][y], ele_description.ground_middle_2)) {
-      className = 'walkable ground-img-5';
-    } else if (withinRange(map[x][y], ele_description.ground_middle_3)) {
-      className = 'walkable ground-img-6';
-    } else if (withinRange(map[x][y], ele_description.ground_bottom_1)) {
-      className = 'walkable ground-img-7';
-    } else if (withinRange(map[x][y], ele_description.ground_bottom_2)) {
-      className = 'walkable ground-img-8';
-    } else if (withinRange(map[x][y], ele_description.ground_bottom_3)) {
-      className = 'walkable ground-img-9';
-    } else if (withinRange(map[x][y], ele_description.water_top_1)) {
-      className = 'walkable water-img-1';
-    } else if (withinRange(map[x][y], ele_description.water_top_2)) {
-      className = 'unwalkable water-img-2';
-    } else if (withinRange(map[x][y], ele_description.water_top_3)) {
-      className = 'unwalkable water-img-3';
-    } else if (withinRange(map[x][y], ele_description.water_middle_1)) {
-      className = 'unwalkable water-img-4';
-    } else if (withinRange(map[x][y], ele_description.water_middle_2)) {
-      className = 'unwalkable water-img-5';
-    } else if (withinRange(map[x][y], ele_description.water_middle_3)) {
-      className = 'unwalkable water-img-6';
-    } else if (withinRange(map[x][y], ele_description.water_bottom_1)) {
-      className = 'unwalkable water-img-7';
-    } else if (withinRange(map[x][y], ele_description.water_bottom_2)) {
-      className = 'unwalkable water-img-8';
-    } else if (withinRange(map[x][y], ele_description.water_bottom_3)) {
-      className = 'unwalkable water-img-9';
-    } else if (withinRange(map[x][y], ele_description.big_house_1)) {
-      className = 'unwalkable big-house-img-1';
-    } else if (withinRange(map[x][y], ele_description.big_house_2)) {
-      className = 'unwalkable big-house-img-2';
-    } else if (withinRange(map[x][y], ele_description.big_house_3)) {
-      className = 'unwalkable big-house-img-3';
-    } else if (withinRange(map[x][y], ele_description.big_house_4)) {
-      className = 'unwalkable big-house-img-4';
-    } else if (withinRange(map[x][y], ele_description.big_house_5)) {
-      className = 'unwalkable big-house-img-5';
-    } else if (withinRange(map[x][y], ele_description.big_house_6)) {
-      className = 'unwalkable big-house-img-6';
-    } else if (withinRange(map[x][y], ele_description.big_house_7)) {
-      className = 'unwalkable big-house-img-7';
-    } else if (withinRange(map[x][y], ele_description.big_house_8)) {
-      className = 'unwalkable big-house-img-8';
-    } else if (withinRange(map[x][y], ele_description.big_house_9)) {
-      className = 'unwalkable big-house-img-9';
-    } else if (withinRange(map[x][y], ele_description.big_house_10)) {
-      className = 'unwalkable big-house-img-10';
-    } else if (withinRange(map[x][y], ele_description.big_house_11)) {
-      className = 'unwalkable big-house-img-11';
-    } else if (withinRange(map[x][y], ele_description.big_house_12)) {
-      className = 'unwalkable big-house-img-12';
-    } else if (withinRange(map[x][y], ele_description.big_house_13)) {
-      className = 'unwalkable big-house-img-13';
-    } else if (withinRange(map[x][y], ele_description.big_house_14)) {
-      className = 'unwalkable big-house-img-14';
-    } else if (withinRange(map[x][y], ele_description.big_house_15)) {
-      className = 'unwalkable big-house-img-15';
-    } else if (withinRange(map[x][y], ele_description.big_house_16)) {
-      className = 'unwalkable big-house-img-16';
-    } else if (withinRange(map[x][y], ele_description.big_house_17)) {
-      className = 'unwalkable big-house-img-17';
-    } else if (withinRange(map[x][y], ele_description.big_house_18)) {
-      className = 'unwalkable big-house-img-18';
-    } else if (withinRange(map[x][y], ele_description.big_house_19)) {
-      className = 'unwalkable big-house-img-19';
-    } else if (withinRange(map[x][y], ele_description.big_house_20)) {
-      className = 'unwalkable big-house-img-20';
-    } else if (withinRange(map[x][y], ele_description.big_house_21)) {
-      className = 'unwalkable big-house-img-21';
-    } else if (withinRange(map[x][y], ele_description.big_house_22)) {
-      className = 'unwalkable big-house-img-22';
-    } else if (withinRange(map[x][y], ele_description.big_house_23)) {
-      className = 'unwalkable big-house-img-23';
-    } else if (withinRange(map[x][y], ele_description.big_house_24)) {
-      className = 'unwalkable big-house-img-24';
-    } else if (withinRange(map[x][y], ele_description.big_house_25)) {
-      className = 'unwalkable big-house-img-25';
-    } else if (withinRange(map[x][y], ele_description.big_house_26)) {
-      className = 'unwalkable big-house-img-26';
-    } else if (withinRange(map[x][y], ele_description.big_house_27)) {
-      className = 'unwalkable big-house-img-27';
-    } else if (withinRange(map[x][y], ele_description.big_house_28)) {
-      className = 'unwalkable big-house-img-28';
-    } else if (withinRange(map[x][y], ele_description.big_house_29)) {
-      className = 'unwalkable big-house-img-29';
-    } else if (withinRange(map[x][y], ele_description.big_house_30)) {
-      className = 'unwalkable big-house-img-30';
-    } else if (withinRange(map[x][y], ele_description.big_house_31)) {
-      className = 'unwalkable big-house-img-31';
-    } else if (withinRange(map[x][y], ele_description.big_house_32)) {
-      className = 'unwalkable big-house-img-32';
-    } else if (withinRange(map[x][y], ele_description.big_house_33)) {
-      // const sprite = 'sprite' + randomState1[`${x}-${y}`];
-      className = `unwalkable big-house-img-33`;
-    } else if (withinRange(map[x][y], ele_description.big_house_34)) {
-      className = 'unwalkable big-house-img-34';
-    } else if (withinRange(map[x][y], ele_description.big_house_35)) {
-      className = 'unwalkable big-house-img-35';
-    } else if (withinRange(map[x][y], ele_description.small_house_1)) {
-      className = 'unwalkable small-house-img-1';
-    } else if (withinRange(map[x][y], ele_description.small_house_2)) {
-      className = 'unwalkable small-house-img-2';
-    } else if (withinRange(map[x][y], ele_description.small_house_3)) {
-      className = 'unwalkable small-house-img-3';
-    } else if (withinRange(map[x][y], ele_description.small_house_4)) {
-      className = 'unwalkable small-house-img-4';
-    } else if (withinRange(map[x][y], ele_description.small_house_5)) {
-      className = 'unwalkable small-house-img-5';
-    } else if (withinRange(map[x][y], ele_description.small_house_6)) {
-      className = 'unwalkable small-house-img-6';
-    } else if (withinRange(map[x][y], ele_description.small_house_7)) {
-      className = 'unwalkable small-house-img-7';
-    } else if (withinRange(map[x][y], ele_description.small_house_8)) {
-      className = 'unwalkable small-house-img-8';
-    } else if (withinRange(map[x][y], ele_description.small_house_9)) {
-      className = 'unwalkable small-house-img-9';
-    } else if (withinRange(map[x][y], ele_description.small_house_10)) {
-      className = 'unwalkable small-house-img-10';
-    } else if (withinRange(map[x][y], ele_description.small_house_11)) {
-      className = 'unwalkable small-house-img-11';
-    } else if (withinRange(map[x][y], ele_description.small_house_12)) {
-      className = 'unwalkable small-house-img-12';
-    } else if (withinRange(map[x][y], ele_description.small_house_13)) {
-      className = 'unwalkable small-house-img-13';
-    } else if (withinRange(map[x][y], ele_description.small_house_14)) {
-      className = 'unwalkable small-house-img-14';
-    } else if (withinRange(map[x][y], ele_description.small_house_15)) {
-      className = 'unwalkable small-house-img-15';
-    } else if (withinRange(map[x][y], ele_description.small_house_16)) {
-      className = 'unwalkable small-house-img-16';
-    } else if (withinRange(map[x][y], ele_description.small_house_17)) {
-      className = 'unwalkable small-house-img-17';
-    } else if (withinRange(map[x][y], ele_description.small_house_18)) {
-      className = 'unwalkable small-house-img-18';
-    } else if (withinRange(map[x][y], ele_description.small_house_19)) {
-      className = 'unwalkable small-house-img-19';
-    } else if (withinRange(map[x][y], ele_description.small_house_20)) {
-      className = 'unwalkable small-house-img-20';
-    } else if (withinRange(map[x][y], ele_description.small_house_21)) {
-      className = 'unwalkable small-house-img-21';
-    } else if (withinRange(map[x][y], ele_description.small_house_22)) {
-      className = 'unwalkable small-house-img-22';
-    } else if (withinRange(map[x][y], ele_description.small_house_23)) {
-      className = 'unwalkable small-house-img-23';
-    } else if (withinRange(map[x][y], ele_description.small_house_24)) {
-      className = `unwalkable small-house-img-24`;
-    } else if (withinRange(map[x][y], ele_description.small_house_25)) {
-      className = 'unwalkable small-house-img-25';
-    } else if (withinRange(map[x][y], ele_description.house_land)) {
-      className = 'walkable land-img';
-    } else if (withinRange(map[x][y], ele_description.house_stree)) {
-      className = 'unwalkable street-img';
-    } else if (withinRange(map[x][y], ele_description.obelisk_top)) {
-      className = 'unwalkable obelisk-img-1';
-    } else if (withinRange(map[x][y], ele_description.obelisk_middle_1)) {
-      className = 'unwalkable obelisk-img-2';
-    } else if (withinRange(map[x][y], ele_description.obelisk_middle_2)) {
-      className = 'unwalkable obelisk-img-3';
-    } else if (withinRange(map[x][y], ele_description.obelisk_bottom)) {
-      className = `unwalkable obelisk-img-4`;
-    } else if (withinRange(map[x][y], ele_description.obelisk_bottom_left)) {
-      className = 'unwalkable obelisk-img-5';
-    } else if (withinRange(map[x][y], ele_description.obelisk_bottom_right)) {
-      className = 'unwalkable obelisk-img-6';
-    } else if (withinRange(map[x][y], ele_description.old_man)) {
-      className = `unwalkable oldman-img npc_man`;
-    } else if (withinRange(map[x][y], ele_description.fat_man)) {
-      className = `unwalkable fatman-img`;
-    } else if (withinRange(map[x][y], ele_description.rocks)) {
-      className = 'unwalkable rocks-img';
-    } else if (ele_description.object !== undefined && withinRange(map[x][y], ele_description.object)) {
-      let lockState = unboxState[`${x}-${y}`] === true ? 'unlocked' : 'locked';
-      let randomStateKey = randomState1[`${x}-${y}`];
-      const object = `treasure-${lockState}-${randomStateKey}`;
-      className = `unwalkable ${object}`;
-      img = (
-        <img
-          src={require(`../assets/img/block/${object}.png`)}
-          alt={object}
-          onClick={() => onInteract(x, y)}
-          style={{ cursor: ifInRange(x, y) ? 'pointer' : '' }}
-        />
-      );
-    } else if (withinRange(map[x][y], ele_description.sprite)) {
-      const sprite = 'sprite' + randomState1[`${x}-${y}`];
-      className = `unwalkable ${sprite}`;
-      const ncp_image = mapData.map_type == 'gallery' ? 'gallery_house' : sprite;
-      img = (
-        <img
-          src={require(`../assets/img/block/${ncp_image}.png`)}
-          alt={ncp_image}
-          onClick={() => onInteract(x, y)}
-          style={{ cursor: ifInRange(x, y) ? 'pointer' : '' }}
-        />
-      );
+      // } else if (ele_description.object !== undefined && withinRange(map[x][y], ele_description.object)) {
+      //   let lockState = unboxState[`${x}-${y}`] === true ? 'unlocked' : 'locked';
+      //   let randomStateKey = randomState1[`${x}-${y}`];
+      //   const object = `treasure-${lockState}-${randomStateKey}`;
+      //   className = `unwalkable ${object}`;
+      //   img = (
+      //     <img
+      //       src={require(`../assets/img/block/${object}.png`)}
+      //       alt={object}
+      //       onClick={() => onInteract(x, y)}
+      //       style={{ cursor: ifInRange(x, y) ? 'pointer' : '' }}
+      //     />
+      //   );
+      // } else if (withinRange(map[x][y], ele_description.sprite)) {
+      //   const sprite = 'sprite' + randomState1[`${x}-${y}`];
+      //   className = `unwalkable ${sprite}`;
+      //   const ncp_image = mapData.map_type == 'gallery' ? 'gallery_house' : sprite;
+      //   img = (
+      //     <img
+      //       src={require(`../assets/img/block/${ncp_image}.png`)}
+      //       alt={ncp_image}
+      //       onClick={() => onInteract(x, y)}
+      //       style={{ cursor: ifInRange(x, y) ? 'pointer' : '' }}
+      //     />
+      //   );
     }
     return (
       <div className={`map-block flex ${className} ${blockType}`} key={key}>
@@ -426,25 +258,58 @@ export default function Map() {
 
       await savingGameWorld(true);
 
-      const obelisk = new Obelisk({
+      const dubhe = new Dubhe({
         networkType: NETWORK,
         packageId: PACKAGE_ID,
         metadata: contractMetadata,
         // secretKey: PRIVATEKEY,
       });
 
-      let player_data = await obelisk.getEntity(WORLD_ID, 'position', obelisk.getAddress());
+      // let player_data = await obelisk.getEntity(WORLD_ID, 'position', obelisk.getAddress());
+      // public fun get_position(self: &Map, key: address): &Position {
 
-      const encounter_contain = await obelisk.containEntity(WORLD_ID, 'encounter', obelisk.getAddress());
+      let positionTx = new Transaction();
+
+      let player_data = dubhe.view(
+        (await dubhe.query.map.get_position({
+          tx: positionTx,
+          params: [positionTx.object(SCHEMA_ID), positionTx.pure.address(signerAddress)],
+        })) as DevInspectResults,
+      );
+
+      console.log('======== encounter info ========');
+      let enconterTx = new Transaction();
+      const encounter_info = await dubhe.state({
+        tx: enconterTx,
+        schema: 'monster_info',
+        params: [enconterTx.object(SCHEMA_ID), enconterTx.pure.address(signerAddress)],
+      });
+
+      let encounter_contain = false;
+      if (encounter_info !== undefined) {
+        encounter_contain = true;
+      }
+
+      // let encounter_contain = false;
+      // try {
+      //   await dubhe.query.encounter.get_monster_info({
+      //     tx: enconterTx,
+      //     params: [enconterTx.object(Encounter_Object_Id), enconterTx.pure.address(dubhe.getAddress())],
+      //   });
+
+      //   encounter_contain =
+      // } catch (e) {
+      //   console.log(e);
+      // }
 
       const stepLength = 2.5;
       setHero({
-        name: obelisk.getAddress(),
+        name: signerAddress,
         position: { left: player_data[0] * stepLength, top: player_data[1] * stepLength },
         lock: encounter_contain,
       });
       // setHeroIsLocked(!returnValue[0])
-      console.log('-----------------------');
+      console.log('---------- encounter_contain -------------');
       console.log(encounter_contain);
       setHaveMonster(encounter_contain);
       setMonster({
@@ -467,38 +332,102 @@ export default function Map() {
     if (stepTransactions.length !== 0) {
       let stepTransactionsItem = stepTransactions;
       setStepTransactions([]);
-      const obelisk = new Obelisk({
+      const dubhe = new Dubhe({
         networkType: NETWORK,
         packageId: PACKAGE_ID,
         metadata: contractMetadata,
         // secretKey: PRIVATEKEY,
       });
-      const stepTxB = new TransactionBlock();
-      let tx_world_id = stepTxB.pure(WORLD_ID);
-      let tx_clock = stepTxB.pure('0x6');
+      const stepTxB = new Transaction();
+      let schemaObject = stepTxB.object(SCHEMA_ID);
+      let randomObject = stepTxB.object('0x8');
 
-      for (let historyDirection of stepTransactionsItem) {
-        let params = [tx_world_id, stepTxB.pure(historyDirection[0]), stepTxB.pure(historyDirection[1]), tx_clock];
-        // obelisk.tx.map_system.move_t(stepTxB, params, undefined, true);
-        (await obelisk.tx.map_system.move_t(stepTxB, params, undefined, true)) as TransactionResult;
-      }
+      let direction1 = (await dubhe.tx.direction.new_east({
+        tx: stepTxB,
+        isRaw: true,
+      })) as TransactionResult;
 
-      try {
-        const response = await wallet.signAndExecuteTransactionBlock({
-          transactionBlock: stepTxB,
-          options: {
-            showEffects: true,
-            showObjectChanges: true,
+      (await dubhe.tx.map_system.move_position({
+        tx: stepTxB,
+        params: [schemaObject, randomObject, direction1],
+        isRaw: true,
+      })) as TransactionResult;
+      let direction2 = (await dubhe.tx.direction.new_east({
+        tx: stepTxB,
+        isRaw: true,
+      })) as TransactionResult;
+
+      (await dubhe.tx.map_system.move_position({
+        tx: stepTxB,
+        params: [schemaObject, randomObject, direction2],
+        isRaw: true,
+      })) as TransactionResult;
+
+      console.log(stepTransactionsItem);
+      // for (let historyDirection of stepTransactionsItem) {
+      //   let direction = null;
+      //   switch (historyDirection[2]) {
+      //     case 'left':
+      //       console.log('left');
+      //       direction = (await dubhe.tx.direction.new_west({
+      //         tx: stepTxB,
+      //         isRaw: true,
+      //       })) as TransactionResult;
+      //       break;
+      //     case 'top':
+      //       console.log('top');
+      //       direction = (await dubhe.tx.direction.new_north({
+      //         tx: stepTxB,
+      //         isRaw: true,
+      //       })) as TransactionResult;
+      //       break;
+      //     case 'right':
+      //       console.log('right');
+      //       direction = (await dubhe.tx.direction.new_east({
+      //         tx: stepTxB,
+      //         isRaw: true,
+      //       })) as TransactionResult;
+      //       break;
+      //     case 'bottom':
+      //       console.log('bottom');
+      //       direction = (await dubhe.tx.direction.new_south({
+      //         tx: stepTxB,
+      //         isRaw: true,
+      //       })) as TransactionResult;
+      //       break;
+      //     default:
+      //       break;
+      //   }
+      //   await dubhe.tx.map_system.move_position({
+      //     tx: stepTxB,
+      //     params: [schemaObject, randomObject, direction],
+      //     isRaw: true,
+      //   });
+      // }
+
+      await signAndExecuteTransaction(
+        {
+          transaction: stepTxB.serialize(),
+          chain: `sui:${NETWORK}`,
+        },
+        {
+          onSuccess: async result => {
+            // Wait for a short period before querying the latest data
+            setTimeout(async () => {
+              toast('Transaction Successful', {
+                description: new Date().toUTCString(),
+                action: {
+                  label: 'Check in Explorer',
+                  onClick: () => window.open(dubhe.getTxExplorerUrl(result.digest), '_blank'),
+                },
+              });
+            }, 2000); // Wait for 2 seconds before querying, adjust as needed
           },
-        });
-        console.log(response);
-      } catch (e) {
-        alert('failed');
-        console.error('failed', e);
-      }
-
-      // const response = await obelisk.signAndSendTxn(stepTxB);
-      // console.log(response);
+          onError: error => {
+            toast.error('Transaction failed. Please try again.');
+          },
+        },
+      );
     }
   };
 
@@ -576,18 +505,6 @@ export default function Map() {
     }
     // FIXME: if !unwalkable => walkable?
     return !withinRange(mapData.map[x][y], mapData.ele_description.walkable);
-    // && !withinRange(mapData.map[x][y], mapData.ele_description.tussock)
-    // && !withinRange(mapData.map[x][y], mapData.ele_description.flower)
-    // && !withinRange(mapData.map[x][y], mapData.ele_description.house_land)
-    // && !withinRange(mapData.map[x][y], mapData.ele_description.ground_top_1)
-    // && !withinRange(mapData.map[x][y], mapData.ele_description.ground_top_2)
-    // && !withinRange(mapData.map[x][y], mapData.ele_description.ground_top_3)
-    // && !withinRange(mapData.map[x][y], mapData.ele_description.ground_middle_1)
-    // && !withinRange(mapData.map[x][y], mapData.ele_description.ground_middle_2)
-    // && !withinRange(mapData.map[x][y], mapData.ele_description.ground_middle_3)
-    // && !withinRange(mapData.map[x][y], mapData.ele_description.ground_bottom_1)
-    // && !withinRange(mapData.map[x][y], mapData.ele_description.ground_bottom_2)
-    // && !withinRange(mapData.map[x][y], mapData.ele_description.ground_bottom_3)
   };
 
   const ifInRange = (npcX: number, npcY: number) => {
@@ -610,6 +527,7 @@ export default function Map() {
     ) {
       // await interactNpc({x: npcX, y: npcY});
       const targetBlock = mapData.map[npcX][npcY];
+      console.log(targetBlock);
       if (withinRange(targetBlock, mapData.ele_description.sprite)) {
         // await interactNpc({x: npcX, y: npcY});
         await interactNpc();
@@ -664,41 +582,41 @@ export default function Map() {
     // console.log(mapData.ele_description.sprite)
     // console.log(withinRange(targetBlock, mapData.ele_description.sprite))
 
-    if (withinRange(targetBlock, mapData.ele_description.sprite)) {
-      await interactNpc();
-    } else if (withinRange(targetBlock, mapData.ele_description.object)) {
-      openTreasureBox(targetPosition);
-    } else if (withinRange(targetBlock, mapData.ele_description.obelisk_bottom)) {
-      console.log('claim');
-      await savingGameWorld(true);
-      await interactNpc();
+    // if (withinRange(targetBlock, mapData.ele_description.sprite)) {
+    //   await interactNpc();
+    // } else if (withinRange(targetBlock, mapData.ele_description.object)) {
+    //   openTreasureBox(targetPosition);
+    // } else if (withinRange(targetBlock, mapData.ele_description.obelisk_bottom)) {
+    //   console.log('claim');
+    //   await savingGameWorld(true);
+    //   await interactNpc();
 
-      setHero({
-        ...hero,
-        lock: false,
-      });
-    } else if (withinRange(targetBlock, mapData.ele_description.old_man)) {
-      console.log('-------22');
-      await savingGameWorld(true);
-      await interactOldManNpc();
+    //   setHero({
+    //     ...hero,
+    //     lock: false,
+    //   });
+    // } else if (withinRange(targetBlock, mapData.ele_description.old_man)) {
+    //   console.log('-------22');
+    //   await savingGameWorld(true);
+    //   await interactOldManNpc();
 
-      setHero({
-        ...hero,
-        lock: false,
-      });
-    } else if (withinRange(targetBlock, mapData.ele_description.fat_man)) {
-      await savingGameWorld(true);
-      await interactOldManNpc();
+    //   setHero({
+    //     ...hero,
+    //     lock: false,
+    //   });
+    // } else if (withinRange(targetBlock, mapData.ele_description.fat_man)) {
+    //   await savingGameWorld(true);
+    //   await interactOldManNpc();
 
-      setHero({
-        ...hero,
-        lock: false,
-      });
-    } else if (withinRange(targetBlock, mapData.ele_description.big_house_33)) {
-      await interactHouseDoor();
-    } else if (withinRange(targetBlock, mapData.ele_description.small_house_24)) {
-      await interactHouseDoor();
-    }
+    //   setHero({
+    //     ...hero,
+    //     lock: false,
+    //   });
+    // } else if (withinRange(targetBlock, mapData.ele_description.big_house_33)) {
+    //   await interactHouseDoor();
+    // } else if (withinRange(targetBlock, mapData.ele_description.small_house_24)) {
+    //   await interactHouseDoor();
+    // }
   };
 
   const interactNpc = async () => {
@@ -900,7 +818,7 @@ export default function Map() {
           {Array.from(Array(rowNumber).keys()).map((row, rowId) => {
             return (
               <div className="original-map-row flex" key={rowId}>
-                {Array.from(Array(32).keys()).map((n, i) => {
+                {Array.from(Array(mapData.map[0].length).keys()).map((n, i) => {
                   return <div className="original-map-block flex" key={i}></div>;
                 })}
               </div>
@@ -924,7 +842,7 @@ export default function Map() {
               mapData.map.map((row: any, rowId: any) => {
                 return (
                   <div className="map-row flex" key={rowId}>
-                    {Array.from(Array(32).keys()).map((n, j) => {
+                    {Array.from(Array(mapData.map[0].length).keys()).map((n, j) => {
                       return drawBlock(mapData.map, rowId, j, mapData.type, mapData.ele_description, j);
                     })}
                   </div>

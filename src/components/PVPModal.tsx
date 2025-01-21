@@ -1,13 +1,18 @@
-import { Obelisk, TransactionBlock } from '@0xobelisk/sui-client';
+import { Dubhe, Transaction } from '@0xobelisk/sui-client';
 import { useAtom, useAtomValue, useSetAtom } from 'jotai';
 import { SendTxLog, Hero, ContractMetadata, Monster, OwnedMonster } from '../state';
-import { NETWORK, PACKAGE_ID, WORLD_ID } from '../chain/config';
+import { SCHEMA_ID, NETWORK, PACKAGE_ID } from '../chain/config';
 import { TransactionResult } from '@0xobelisk/sui-client/src';
-import { useWallet } from '@suiet/wallet-kit';
+import { ConnectButton, useCurrentWallet, useSignAndExecuteTransaction, useCurrentAccount } from '@mysten/dapp-kit';
+import { toast } from 'sonner';
 
 export default function PVPModal(props: any) {
   const catchResult = ['Catch monster successed!', 'Monster got away.', 'Catch miss'];
-  const wallet = useWallet();
+
+  const { mutateAsync: signAndExecuteTransaction } = useSignAndExecuteTransaction();
+  const { connectionStatus } = useCurrentWallet();
+  const signerAddress = useCurrentAccount()?.address;
+
   const [sendTxLog, setSendTxLog] = useAtom(SendTxLog);
   const contractMetadata = useAtomValue(ContractMetadata);
   const setMonster = useSetAtom(Monster);
@@ -17,42 +22,72 @@ export default function PVPModal(props: any) {
   const handleNoTxLog = async () => {
     // if (sendTxLog.onYes !== undefined) {
     // sendTxLog.onYes();
-    const obelisk = new Obelisk({
+    const dubhe = new Dubhe({
       networkType: NETWORK,
       packageId: PACKAGE_ID,
       metadata: contractMetadata,
       // secretKey: PRIVATEKEY,
     });
 
-    let tx = new TransactionBlock();
-    let params = [tx.pure(WORLD_ID)];
+    let tx = new Transaction();
+    let params = [tx.object(SCHEMA_ID)];
 
     // await obelisk.tx.encounter_system.flee(tx, params, undefined, true);
 
-    (await obelisk.tx.encounter_system.flee(tx, params, undefined, true)) as TransactionResult;
+    (await dubhe.tx.encounter_system.flee({
+      tx,
+      params,
+      isRaw: true,
+    })) as TransactionResult;
 
     try {
-      const response = await wallet.signAndExecuteTransactionBlock({
-        transactionBlock: tx,
-        options: {
-          showEffects: true,
-          showObjectChanges: true,
+      await signAndExecuteTransaction(
+        {
+          transaction: tx.serialize(),
+          chain: `sui:${NETWORK}`,
         },
-      });
-      console.log(response);
-      if (response.effects.status.status === 'success') {
-        alert('Run success');
-      } else {
-        alert('Fetch sui api failed.');
-      }
-      let player_data = await obelisk.getEntity(WORLD_ID, 'position', obelisk.getAddress());
+        {
+          onSuccess: async result => {
+            // Wait for a short period before querying the latest data
+            setTimeout(async () => {
+              toast('Transaction Successful', {
+                description: new Date().toUTCString(),
+                action: {
+                  label: 'Check in Explorer',
+                  onClick: () => window.open(dubhe.getTxExplorerUrl(result.digest), '_blank'),
+                },
+              });
+            }, 2000); // Wait for 2 seconds before querying, adjust as needed
+          },
+          onError: error => {
+            toast.error('Transaction failed. Please try again.');
+          },
+        },
+      );
 
-      const encounter_contain = await obelisk.containEntity(WORLD_ID, 'encounter', obelisk.getAddress());
+      const mapPositionTx = new Transaction();
+      let player_data = await dubhe.state({
+        tx: mapPositionTx,
+        schema: 'position',
+        params: [mapPositionTx.object(SCHEMA_ID), mapPositionTx.pure.address(signerAddress)],
+      });
+
+      const encounterInfoTx = new Transaction();
+      const encounter_info = await dubhe.state({
+        tx: encounterInfoTx,
+        schema: 'monster_info',
+        params: [encounterInfoTx.object(SCHEMA_ID), encounterInfoTx.pure.address(signerAddress)],
+      });
+
+      let encounter_contain = false;
+      if (encounter_info !== undefined) {
+        encounter_contain = true;
+      }
       console.log(encounter_contain);
       console.log(JSON.stringify(player_data));
       const stepLength = 2.5;
       setHero({
-        name: obelisk.getAddress(),
+        name: signerAddress,
         position: { left: player_data[0] * stepLength, top: player_data[1] * stepLength },
         lock: encounter_contain,
       });
@@ -87,54 +122,91 @@ export default function PVPModal(props: any) {
     // if (sendTxLog.onYes !== undefined) {
     console.log('------- 1');
     // sendTxLog.onYes();
-    const obelisk = new Obelisk({
+    const dubhe = new Dubhe({
       networkType: NETWORK,
       packageId: PACKAGE_ID,
       metadata: contractMetadata,
       // secretKey: PRIVATEKEY,
     });
 
-    let tx = new TransactionBlock();
-    let params = [tx.pure(WORLD_ID), tx.pure('0x6')];
+    let tx = new Transaction();
+    let params = [tx.object(SCHEMA_ID)];
 
     // let txb = await obelisk.tx.encounter_system.throw_ball(tx, params, undefined, true);
     // console.log(txb);
-    (await obelisk.tx.encounter_system.throw_ball(tx, params, undefined, true)) as TransactionResult;
+    (await dubhe.tx.encounter_system.throw_ball({
+      tx,
+      params,
+      isRaw: true,
+    })) as TransactionResult;
 
     // const response = await obelisk.signAndSendTxn(tx);
     // console.log(response);
     try {
-      const response = await wallet.signAndExecuteTransactionBlock({
-        transactionBlock: tx,
-        options: {
-          showEffects: true,
-          showObjectChanges: true,
+      const { digest } = await signAndExecuteTransaction(
+        {
+          transaction: tx.serialize(),
+          chain: `sui:${NETWORK}`,
         },
-      });
-      console.log(response);
+        {
+          onSuccess: async result => {
+            // Wait for a short period before querying the latest data
+            setTimeout(async () => {
+              toast('Transaction Successful', {
+                description: new Date().toUTCString(),
+                action: {
+                  label: 'Check in Explorer',
+                  onClick: () => window.open(dubhe.getTxExplorerUrl(result.digest), '_blank'),
+                },
+              });
+            }, 2000); // Wait for 2 seconds before querying, adjust as needed
+          },
+          onError: error => {
+            toast.error('Transaction failed. Please try again.');
+          },
+        },
+      );
       let catch_result = -1;
-      if (response.effects.status.status === 'success') {
-        response.events.map(event => {
-          let obelisk_schema_id = event.parsedJson['_obelisk_schema_id'];
-          console.log(obelisk_schema_id);
-          const textDecoder = new TextDecoder('utf-8');
-          const obelisk_schema_name = textDecoder.decode(new Uint8Array(obelisk_schema_id));
+      const resp = await dubhe.waitForTransaction(digest);
+      const catchEvent = resp.events?.find(e => e.type.includes('catch_result')) as any;
+      catch_result = catchEvent.parsedJson['data']['value'];
+      // if (resp.effects.status.status === 'success') {
+      //   resp.events.map(event => {
+      //     let obelisk_schema_id = event.parsedJson['_obelisk_schema_id'];
+      //     console.log(obelisk_schema_id);
+      //     const textDecoder = new TextDecoder('utf-8');
+      //     const obelisk_schema_name = textDecoder.decode(new Uint8Array(obelisk_schema_id));
 
-          if (obelisk_schema_name === 'catch_result') {
-            catch_result = event.parsedJson['data']['value'];
-          }
-        });
-      } else {
-        alert('Fetch sui api failed.');
+      //     if (obelisk_schema_name === 'catch_result') {
+      //       catch_result = event.parsedJson['data']['value'];
+      //     }
+      //   });
+      // } else {
+      //   alert('Fetch sui api failed.');
+      // }
+      const mapPositionTx = new Transaction();
+      const player_data = await dubhe.state({
+        tx: mapPositionTx,
+        schema: 'position',
+        params: [mapPositionTx.object(SCHEMA_ID), mapPositionTx.pure.address(signerAddress)],
+      });
+
+      const encounterInfoTx = new Transaction();
+      const encounter_info = await dubhe.state({
+        tx: encounterInfoTx,
+        schema: 'monster_info',
+        params: [encounterInfoTx.object(SCHEMA_ID), encounterInfoTx.pure.address(signerAddress)],
+      });
+
+      let encounter_contain = false;
+      if (encounter_info !== undefined) {
+        encounter_contain = true;
       }
-      let player_data = await obelisk.getEntity(WORLD_ID, 'position', obelisk.getAddress());
-
-      const encounter_contain = await obelisk.containEntity(WORLD_ID, 'encounter', obelisk.getAddress());
       console.log(encounter_contain);
       console.log(JSON.stringify(player_data));
       const stepLength = 2.5;
       setHero({
-        name: obelisk.getAddress(),
+        name: signerAddress,
         position: { left: player_data[0] * stepLength, top: player_data[1] * stepLength },
         lock: encounter_contain,
       });

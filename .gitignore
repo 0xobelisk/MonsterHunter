@@ -45,3 +45,5 @@ sui.log.*
 
 localnode.nohup.out
 src/chain/key.ts
+
+*.db

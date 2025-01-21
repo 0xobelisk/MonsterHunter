@@ -1,30 +1,37 @@
-import 'tailwindcss/tailwind.css';
 import '../css/font-awesome.css';
 import '../css/index.css';
 import '../css/game-img.css';
+import 'tailwindcss/tailwind.css';
+import '@mysten/dapp-kit/dist/index.css';
 import type { AppProps } from 'next/app';
-import React from 'react';
-import {WalletProvider,Chain} from '@suiet/wallet-kit';
-import '@suiet/wallet-kit/style.css';
+import { Toaster } from 'sonner';
 
-const SuiCustomChain: Chain = {
-    id: "sui:localnet",
-    name: "Sui Localnet",
-    rpcUrl: "http://127.0.0.1:9000",
-};
+import { createNetworkConfig, SuiClientProvider, WalletProvider } from '@mysten/dapp-kit';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { getFullnodeUrl } from '@mysten/sui/client';
+import { NETWORK } from '../chain/config';
 
-const SupportedChains: Chain[] = [
-    // ...DefaultChains,
-    SuiCustomChain
-];
+// Config options for the networks you want to connect to
+const { networkConfig } = createNetworkConfig({
+  localnet: { url: getFullnodeUrl('localnet') },
+  devnet: { url: getFullnodeUrl('devnet') },
+  testnet: { url: getFullnodeUrl('testnet') },
+  mainnet: { url: getFullnodeUrl('mainnet') },
+});
 
+const queryClient = new QueryClient();
 
 function MyApp({ Component, pageProps }: AppProps) {
-  return  (
-        <WalletProvider chains={SupportedChains}>
+  return (
+    <QueryClientProvider client={queryClient}>
+      <SuiClientProvider networks={networkConfig} defaultNetwork={NETWORK}>
+        <WalletProvider>
+          <Toaster />
           <Component {...pageProps} />
         </WalletProvider>
-      )
+      </SuiClientProvider>
+    </QueryClientProvider>
+  );
 }
 
 export default MyApp;

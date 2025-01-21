@@ -1,17 +1,22 @@
-import { loadMetadata, Obelisk, TransactionBlock, TransactionResult } from '@0xobelisk/sui-client';
+import { loadMetadata, Dubhe, Transaction, TransactionResult } from '@0xobelisk/sui-client';
 import { useEffect, useState } from 'react';
 import { useAtom } from 'jotai';
 import { Map, DialogModal, PVPModal } from '../../components';
 import { MapData, ContractMetadata, Monster, OwnedMonster, Hero } from '../../state';
 import { useRouter } from 'next/router';
-import { NETWORK, PACKAGE_ID, WORLD_ID } from '../../chain/config';
+import { SCHEMA_ID, NETWORK, PACKAGE_ID } from '../../chain/config';
 import { dubheConfig } from '../../../dubhe.config';
 // import { PRIVATEKEY } from '../../chain/key';
-import { ConnectButton, useWallet } from '@suiet/wallet-kit';
+import { ConnectButton, useCurrentWallet, useSignAndExecuteTransaction, useCurrentAccount } from '@mysten/dapp-kit';
+import { toast } from 'sonner';
 
 const Home = () => {
   const router = useRouter();
-  const wallet = useWallet();
+
+  const { mutateAsync: signAndExecuteTransaction } = useSignAndExecuteTransaction();
+  const { connectionStatus } = useCurrentWallet();
+  const signerAddress = useCurrentAccount()?.address;
+
   const [isLoading, setIsLoading] = useState(false);
   const [mapData, setMapData] = useAtom(MapData);
   const [contractMetadata, setContractMetadata] = useAtom(ContractMetadata);
@@ -24,46 +29,96 @@ const Home = () => {
     // setContractMetadata(metadata)
     // dispatch(setContractMetadata(metadata))
     setContractMetadata(metadata);
-    const obelisk = new Obelisk({
+    const dubhe = new Dubhe({
       networkType: NETWORK,
       packageId: PACKAGE_ID,
       metadata: metadata,
       // secretKey: PRIVATEKEY,
     });
-    const address = wallet.address;
-    console.log(address);
-    let have_player = await obelisk.containEntity(WORLD_ID, 'position', address);
-    if (have_player === undefined) {
-      alert('Fetch sui api error!');
-    } else {
-      if (have_player === false) {
-        const tx = new TransactionBlock();
-        const params = [tx.pure(WORLD_ID), tx.pure(0), tx.pure(0)];
-        (await obelisk.tx.map_system.register(tx, params, undefined, true)) as TransactionResult;
-        try {
-          await wallet.signAndExecuteTransactionBlock({
-            transactionBlock: tx,
-            options: {
-              showEffects: true,
-              showObjectChanges: true,
-            },
-          });
-        } catch (e) {
-          alert('failed');
-          console.error('failed', e);
-        }
-        // await obelisk.tx.map_system.register(tx, params);
-      }
-    }
-    let player_data = await obelisk.getEntity(WORLD_ID, 'position', address);
+    // const address = wallet.address;
+    console.log('======== v1 address ========');
+    console.log(signerAddress);
 
-    const map_data = await obelisk.getEntity(WORLD_ID, 'map');
+    const entityTx = new Transaction();
+    console.log('======== v1 entityTx ========');
+    console.log(SCHEMA_ID, signerAddress);
+    let have_player = await dubhe.state({
+      tx: entityTx,
+      schema: 'player',
+      params: [entityTx.object(SCHEMA_ID), entityTx.pure.address(signerAddress)],
+    });
+    console.log('======== v1 have_player ========');
+    console.log(have_player);
+    if (have_player === undefined || have_player[0] === false) {
+      const registerTx = new Transaction();
+      const params = [registerTx.object(SCHEMA_ID), registerTx.pure.u64(0), registerTx.pure.u64(0)];
+      registerTx.setGasBudget(100000000);
+      await dubhe.tx.map_system.register({
+        tx: registerTx,
+        params,
+        isRaw: true,
+      });
+      await signAndExecuteTransaction(
+        {
+          transaction: registerTx.serialize(),
+          chain: `sui:${NETWORK}`,
+        },
+        {
+          onSuccess: async result => {
+            // Wait for a short period before querying the latest data
+            setTimeout(async () => {
+              toast('Register Successful', {
+                description: new Date().toUTCString(),
+                action: {
+                  label: 'Check in Explorer',
+                  onClick: () => window.open(dubhe.getTxExplorerUrl(result.digest), '_blank'),
+                },
+              });
+            }, 2000); // Wait for 2 seconds before querying, adjust as needed
+          },
+          onError: error => {
+            console.error('Transaction failed:', error);
+            toast.error('Transaction failed. Please try again.');
+          },
+        },
+      );
+
+      // await obelisk.tx.map_system.register(tx, params);
+      //   alert('Fetch sui api error!');
+      // } else {
+    }
+    console.log('======== v1 end ========');
+    // let player_data = await obelisk.getEntity(WORLD_ID, 'position', address);
+    const entityPositionTx = new Transaction();
+    let player_data = (
+      await dubhe.state({
+        tx: entityPositionTx,
+        schema: 'position',
+        params: [entityPositionTx.object(SCHEMA_ID), entityPositionTx.pure.address(signerAddress)],
+      })
+    )[0];
+    console.log('======== v1 player_data ========');
+    console.log(player_data);
+
+    const mapConfigTx = new Transaction();
+    const map_data = (
+      await dubhe.state({
+        tx: mapConfigTx,
+        schema: 'map_config',
+        params: [mapConfigTx.object(SCHEMA_ID)],
+      })
+    )[0];
+    console.log('======== map data ========');
     console.log(map_data);
-    console.log(WORLD_ID);
-    console.log(address);
+    console.log(signerAddress);
     // const encounter_contain = await obelisk.query.encounter_comp.contains(new_tx, new_params) as DevInspectResults;
 
-    const owned_monsters = await obelisk.getEntity(WORLD_ID, 'owned_monsters', address);
+    const entityMonsterTx = new Transaction();
+    const owned_monsters = await dubhe.state({
+      tx: entityMonsterTx,
+      schema: 'monster',
+      params: [entityMonsterTx.object(SCHEMA_ID), entityMonsterTx.pure.address(signerAddress)],
+    });
     if (owned_monsters !== undefined) {
       // dispatch(setOwnedMonster(
       //   owned_monsters
@@ -71,13 +126,24 @@ const Home = () => {
       setOwnedMonster(owned_monsters[0]);
     }
 
-    const encounter_contain = await obelisk.containEntity(WORLD_ID, 'encounter', address);
+    const entityEncounterableTx = new Transaction();
+    let encounter_contain = false;
+    let encounter_contain_data = await dubhe.state({
+      tx: entityEncounterableTx,
+      schema: 'monster_info',
+      params: [entityEncounterableTx.object(SCHEMA_ID), entityEncounterableTx.pure.address(signerAddress)],
+    });
+    console.log('======== v1 encounter_contain_data ========');
+    console.log(encounter_contain_data);
+    if (encounter_contain_data !== undefined) {
+      encounter_contain = true;
+    }
 
     console.log(JSON.stringify(player_data));
     const stepLength = 2.5;
     setHero({
-      name: address,
-      position: { left: player_data[0] * stepLength, top: player_data[1] * stepLength },
+      name: signerAddress,
+      position: { left: player_data['x'] * stepLength, top: player_data['y'] * stepLength },
       lock: encounter_contain!,
     });
     setMonster({
@@ -85,115 +151,37 @@ const Home = () => {
     });
 
     setMapData({
-      map: map_data[2],
+      map: map_data['terrain'],
       type: 'green',
       ele_description: {
-        walkable: [0, 39],
-        green: [0],
-        tussock: [20],
-        flower: [22],
-        house_land: [23],
-
-        ground_top_1: [30],
-        ground_top_2: [31],
-        ground_top_3: [32],
-        ground_middle_1: [33],
-        ground_middle_2: [34],
-        ground_middle_3: [35],
-        ground_bottom_1: [36],
-        ground_bottom_2: [37],
-        ground_bottom_3: [38],
-
-        object: [40],
-        sprite: [41],
-        old_man: [43],
-        fat_man: [44],
-
-        water_top_1: [60],
-        water_top_2: [61],
-        water_top_3: [62],
-        water_middle_1: [63],
-        water_middle_2: [64],
-        water_middle_3: [65],
-        water_bottom_1: [66],
-        water_bottom_2: [67],
-        water_bottom_3: [68],
-
-        obelisk_top: [70],
-        obelisk_middle_1: [71],
-        obelisk_middle_2: [72],
-        obelisk_bottom: [73],
-        obelisk_bottom_left: [74],
-        obelisk_bottom_right: [75],
-
-        tree_top: [80],
-        tree_bottom: [81],
-        small_tree: [83],
-        rocks: [84],
-
-        big_house_1: [100],
-        big_house_2: [101],
-        big_house_3: [102],
-        big_house_4: [103],
-        big_house_5: [104],
-        big_house_6: [105],
-        big_house_7: [106],
-        big_house_8: [107],
-        big_house_9: [108],
-        big_house_10: [109],
-        big_house_11: [110],
-        big_house_12: [111],
-        big_house_13: [112],
-        big_house_14: [113],
-        big_house_15: [114],
-        big_house_16: [115],
-        big_house_17: [116],
-        big_house_18: [117],
-        big_house_19: [118],
-        big_house_20: [119],
-        big_house_21: [120],
-        big_house_22: [121],
-        big_house_23: [122],
-        big_house_24: [123],
-        big_house_25: [124],
-        big_house_26: [125],
-        big_house_27: [126],
-        big_house_28: [127],
-        big_house_29: [128],
-        big_house_30: [129],
-        big_house_31: [130],
-        big_house_32: [131],
-        big_house_33: [132],
-        big_house_34: [133],
-        big_house_35: [134],
-
-        small_house_1: [135],
-        small_house_2: [136],
-        small_house_3: [137],
-        small_house_4: [138],
-        small_house_5: [139],
-        small_house_6: [140],
-        small_house_7: [141],
-        small_house_8: [142],
-        small_house_9: [143],
-        small_house_10: [144],
-        small_house_11: [145],
-        small_house_12: [146],
-        small_house_13: [147],
-        small_house_14: [148],
-        small_house_15: [149],
-        small_house_16: [150],
-        small_house_17: [151],
-        small_house_18: [152],
-        small_house_19: [153],
-        small_house_20: [154],
-        small_house_21: [155],
-        small_house_22: [156],
-        small_house_23: [157],
-        small_house_24: [158],
-        small_house_25: [159],
-
-        house_stree: [161],
+        walkable: [
+          {
+            None: true,
+            $kind: 'None',
+          },
+          {
+            TallGrass: true,
+            $kind: 'TallGrass',
+          },
+        ],
+        green: [
+          {
+            None: true,
+            $kind: 'None',
+          },
+        ],
+        tussock: [
+          {
+            TallGrass: true,
+            $kind: 'TallGrass',
+          },
+        ],
+        small_tree: [
+          {
+            Boulder: true,
+            $kind: 'Boulder',
+          },
+        ],
       },
       events: [],
       map_type: 'event',
@@ -202,11 +190,11 @@ const Home = () => {
   };
 
   useEffect(() => {
-    if (router.isReady && wallet?.connected && wallet?.address) {
+    if (router.isReady && connectionStatus === 'connected' && signerAddress) {
       console.log(1);
       rpgworld();
     }
-  }, [router.isReady, wallet?.connected, wallet?.address]);
+  }, [router.isReady, connectionStatus, signerAddress]);
 
   // const ownedMonster = useSelector(state => state["ownedMonster"])
   if (isLoading) {
