@@ -81,8 +81,10 @@ flavor = "sui"
 
 
 
+
+
 [env.localnet]
 chain-id = "567bbed7"
-original-published-id = "0xf54427ca67965e2ba59b2888355f80f33b31c67061976d8ba4a6753b7d9201c3"
-latest-published-id = "0xf54427ca67965e2ba59b2888355f80f33b31c67061976d8ba4a6753b7d9201c3"
+original-published-id = "0xe2d0a7ff14a50a2601d58eb6c6fa4d1aac1d29c838daf44d560323bc12d8db6a"
+latest-published-id = "0xe2d0a7ff14a50a2601d58eb6c6fa4d1aac1d29c838daf44d560323bc12d8db6a"
 published-version = "1"
