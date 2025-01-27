@@ -69,38 +69,38 @@ export default function PVPModal(props: any) {
         },
       );
 
-      const mapPositionTx = new Transaction();
-      let player_data = await dubhe.state({
-        tx: mapPositionTx,
-        schema: 'position',
-        params: [mapPositionTx.object(SCHEMA_ID), mapPositionTx.pure.address(signerAddress)],
-      });
+      // const mapPositionTx = new Transaction();
+      // let player_data = await dubhe.state({
+      //   tx: mapPositionTx,
+      //   schema: 'position',
+      //   params: [mapPositionTx.object(SCHEMA_ID), mapPositionTx.pure.address(signerAddress)],
+      // });
 
-      const encounterInfoTx = new Transaction();
-      const encounter_info = await dubhe.state({
-        tx: encounterInfoTx,
-        schema: 'monster_info',
-        params: [encounterInfoTx.object(SCHEMA_ID), encounterInfoTx.pure.address(signerAddress)],
-      });
+      // const encounterInfoTx = new Transaction();
+      // const encounter_info = await dubhe.state({
+      //   tx: encounterInfoTx,
+      //   schema: 'monster_info',
+      //   params: [encounterInfoTx.object(SCHEMA_ID), encounterInfoTx.pure.address(signerAddress)],
+      // });
 
-      let encounter_contain = false;
-      if (encounter_info !== undefined) {
-        encounter_contain = true;
-      }
-      console.log(encounter_contain);
-      console.log(JSON.stringify(player_data));
-      const stepLength = 2.5;
-      setHero({
-        name: signerAddress,
-        position: { left: player_data[0] * stepLength, top: player_data[1] * stepLength },
-        lock: encounter_contain,
-      });
-      setMonster({
-        exist: encounter_contain,
-      });
-      if (encounter_contain === false) {
-        setSendTxLog({ ...sendTxLog, display: false });
-      }
+      // let encounter_contain = false;
+      // if (encounter_info !== undefined) {
+      //   encounter_contain = true;
+      // }
+      // console.log(encounter_contain);
+      // console.log(JSON.stringify(player_data));
+      // const stepLength = 2.5;
+      // setHero({
+      //   name: signerAddress,
+      //   position: { left: player_data[0] * stepLength, top: player_data[1] * stepLength },
+      //   lock: encounter_contain,
+      // });
+      // setMonster({
+      //   exist: encounter_contain,
+      // });
+      // if (encounter_contain === false) {
+      //   setSendTxLog({ ...sendTxLog, display: false });
+      // }
     } catch (e) {
       alert('failed');
       console.error('failed', e);
@@ -123,37 +123,29 @@ export default function PVPModal(props: any) {
 
   const handleYesTxLog = async () => {
     console.log(sendTxLog);
-    // if (sendTxLog.onYes !== undefined) {
-    console.log('------- 1');
-    // sendTxLog.onYes();
     const dubhe = new Dubhe({
       networkType: NETWORK,
       packageId: PACKAGE_ID,
       metadata: contractMetadata,
-      // secretKey: PRIVATEKEY,
     });
 
     let tx = new Transaction();
     let params = [tx.object(SCHEMA_ID), tx.object.random()];
 
-    // let txb = await obelisk.tx.encounter_system.throw_ball(tx, params, undefined, true);
-    // console.log(txb);
+    // 发送抓取请求
     (await dubhe.tx.encounter_system.throw_ball({
       tx,
       params,
       isRaw: true,
     })) as TransactionResult;
 
-    // const response = await obelisk.signAndSendTxn(tx);
-    // console.log(response);
-    const { digest } = await signAndExecuteTransaction(
+    await signAndExecuteTransaction(
       {
         transaction: tx.serialize(),
         chain: `sui:${NETWORK}`,
       },
       {
         onSuccess: async result => {
-          // Wait for a short period before querying the latest data
           setTimeout(async () => {
             toast('Transaction Successful', {
               description: new Date().toUTCString(),
@@ -162,74 +154,13 @@ export default function PVPModal(props: any) {
                 onClick: () => window.open(dubhe.getTxExplorerUrl(result.digest), '_blank'),
               },
             });
-          }, 2000); // Wait for 2 seconds before querying, adjust as needed
+          }, 2000);
         },
         onError: error => {
           toast.error('Transaction failed. Please try again.');
         },
       },
     );
-    let catch_result = -1;
-    const resp = await dubhe.waitForTransaction(digest);
-    console.log(resp);
-    const catchEvent = resp.events?.find(e => e.type.includes('monster_catch_attempt_event')) as any;
-    console.log(catchEvent);
-    catch_result = catchEvent.parsedJson['value']['fields']['result']['variant'];
-    // if (resp.effects.status.status === 'success') {
-    //   resp.events.map(event => {
-    //     let obelisk_schema_id = event.parsedJson['_obelisk_schema_id'];
-    //     console.log(obelisk_schema_id);
-    //     const textDecoder = new TextDecoder('utf-8');
-    //     const obelisk_schema_name = textDecoder.decode(new Uint8Array(obelisk_schema_id));
-
-    //     if (obelisk_schema_name === 'catch_result') {
-    //       catch_result = event.parsedJson['data']['value'];
-    //     }
-    //   });
-    // } else {
-    //   alert('Fetch sui api failed.');
-    // }
-    const mapPositionTx = new Transaction();
-    const player_data = await dubhe.state({
-      tx: mapPositionTx,
-      schema: 'position',
-      params: [mapPositionTx.object(SCHEMA_ID), mapPositionTx.pure.address(signerAddress)],
-    });
-
-    const encounterInfoTx = new Transaction();
-    const encounter_info = await dubhe.state({
-      tx: encounterInfoTx,
-      schema: 'monster_info',
-      params: [encounterInfoTx.object(SCHEMA_ID), encounterInfoTx.pure.address(signerAddress)],
-    });
-
-    let encounter_contain = false;
-    if (encounter_info !== undefined) {
-      encounter_contain = true;
-    }
-    console.log(encounter_contain);
-    console.log(JSON.stringify(player_data));
-    const stepLength = 2.5;
-    setHero({
-      name: signerAddress,
-      position: { left: player_data[0] * stepLength, top: player_data[1] * stepLength },
-      lock: encounter_contain,
-    });
-    setMonster({
-      exist: encounter_contain,
-    });
-    if (encounter_contain === false) {
-      setSendTxLog({ ...sendTxLog, display: false });
-      console.log('catch successed');
-    } else {
-      console.log('catch failed');
-    }
-    console.log(`here  ------ ${catch_result}`);
-    alert(catchResult[catch_result]);
-    // } catch (e) {
-    //   alert('failed');
-    //   console.error('failed', e);
-    // }
   };
 
   return (

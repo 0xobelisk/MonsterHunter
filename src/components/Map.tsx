@@ -99,6 +99,9 @@ export default function Map() {
   // };
 
   const initialEvents = () => {
+    if (mapData.events === undefined) {
+      return {};
+    }
     if (mapData.events.length === 0) {
       return {};
     }
@@ -332,32 +335,43 @@ export default function Map() {
       let schemaObject = stepTxB.object(SCHEMA_ID);
       let clockObject = stepTxB.object.clock();
 
+      // Calculate dynamic gas budget
+      // Base gas budget
+      const BASE_GAS = 10000000;
+      // Additional gas cost per move operation
+      const MOVE_OPERATION_GAS = 1000000;
+      // Calculate total gas based on number of operations
+      const totalGas = BASE_GAS + stepTransactionsItem.length * MOVE_OPERATION_GAS;
+
+      // Set gas budget
+      stepTxB.setGasBudget(totalGas);
+
       for (let historyDirection of stepTransactionsItem) {
         let direction = null;
         switch (historyDirection[2]) {
           case 'left':
-            console.log('left');
+            console.log('Processing move: left');
             direction = (await dubhe.tx.direction.new_west({
               tx: stepTxB,
               isRaw: true,
             })) as TransactionResult;
             break;
           case 'top':
-            console.log('top');
+            console.log('Processing move: top');
             direction = (await dubhe.tx.direction.new_north({
               tx: stepTxB,
               isRaw: true,
             })) as TransactionResult;
             break;
           case 'right':
-            console.log('right');
+            console.log('Processing move: right');
             direction = (await dubhe.tx.direction.new_east({
               tx: stepTxB,
               isRaw: true,
             })) as TransactionResult;
             break;
           case 'bottom':
-            console.log('bottom');
+            console.log('Processing move: bottom');
             direction = (await dubhe.tx.direction.new_south({
               tx: stepTxB,
               isRaw: true,
@@ -372,6 +386,10 @@ export default function Map() {
           isRaw: true,
         });
       }
+
+      // Add gas usage logging
+      console.log(`Estimated Gas Budget: ${totalGas}, Number of Operations: ${stepTransactionsItem.length}`);
+
       let txHash = null;
       await signAndExecuteTransaction(
         {
@@ -381,19 +399,21 @@ export default function Map() {
         {
           onSuccess: async result => {
             txHash = result.digest;
-            // Wait for a short period before querying the latest data
+            console.log('Transaction successful, digest:', result.digest);
+
             setTimeout(async () => {
               toast('Transaction Successful', {
-                description: new Date().toUTCString(),
+                description: `${new Date().toUTCString()} - Gas Budget: ${totalGas}`,
                 action: {
                   label: 'Check in Explorer',
                   onClick: () => window.open(dubhe.getTxExplorerUrl(result.digest), '_blank'),
                 },
               });
-            }, 2000); // Wait for 2 seconds before querying, adjust as needed
+            }, 2000);
           },
           onError: error => {
-            toast.error('Transaction failed. Please try again.');
+            console.error('Transaction failed:', error);
+            toast.error(`Transaction failed. Gas budget might be insufficient (${totalGas})`);
           },
         },
       );
