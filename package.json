@@ -32,9 +32,9 @@
   },
   "dependencies": {
     "@0xobelisk/sui-cli": "^1.0.11",
-    "@0xobelisk/sui-client": "^1.0.9",
+    "@0xobelisk/sui-client": "^1.0.10",
     "@0xobelisk/sui-common": "^1.0.6",
-    "@0xobelisk/sui-indexer": "^0.0.3",
+    "@0xobelisk/sui-indexer": "^0.0.5",
     "@mysten/dapp-kit": "0.14.46",
     "@mysten/sui": "1.19.0",
     "@reduxjs/toolkit": "^1.9.7",
