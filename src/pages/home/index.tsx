@@ -5,28 +5,24 @@ import { Map, DialogModal, PVPModal } from '../../components';
 import { MapData, ContractMetadata, Monster, OwnedMonster, Hero, SendTxLog } from '../../state';
 import { useRouter } from 'next/router';
 import { SCHEMA_ID, NETWORK, PACKAGE_ID } from '../../chain/config';
-import { dubheConfig } from '../../../dubhe.config';
-// import { PRIVATEKEY } from '../../chain/key';
-import { ConnectButton, useCurrentWallet, useSignAndExecuteTransaction, useCurrentAccount } from '@mysten/dapp-kit';
 import { toast } from 'sonner';
+import { ADDRESS, PRIVATE_KEY } from 'src/chain/wallet';
+
+
 
 const Home = () => {
   const router = useRouter();
-
-  const { mutateAsync: signAndExecuteTransaction } = useSignAndExecuteTransaction();
-  const { connectionStatus } = useCurrentWallet();
-  const signerAddress = useCurrentAccount()?.address;
-
-  const [isLoading, setIsLoading] = useState(false);
-  const [mapData, setMapData] = useAtom(MapData);
-  const [contractMetadata, setContractMetadata] = useAtom(ContractMetadata);
-  const [monster, setMonster] = useAtom(Monster);
-  const [sendTxLog, setSendTxLog] = useAtom(SendTxLog);
+  const [,setMapData] = useAtom(MapData);
+  const [,setContractMetadata] = useAtom(ContractMetadata);
+  const [,setMonster] = useAtom(Monster);
+  const [,setSendTxLog] = useAtom(SendTxLog);
+  const [,setHero] = useAtom(Hero)
   const [ownedMonster, setOwnedMonster] = useAtom(OwnedMonster);
-  const [hero, setHero] = useAtom(Hero);
   const [subscription, setSubscription] = useState<WebSocket | null>(null);
   const [subscriptionCatch, setSubscriptionCatch] = useState<WebSocket | null>(null);
-  const subscribeToEvents = async (dubhe: Dubhe) => {
+  const [isLoading, setIsLoading] = useState(true);
+
+  const subscribeToEvents = async (dubhe: Dubhe): Promise<WebSocket> => {
     try {
       const sub = await dubhe.subscribe(['position', 'monster_info'], data => {
         console.log('Received real-time data:', data);
@@ -50,14 +46,15 @@ const Home = () => {
           }));
         }
       });
-      setSubscription(sub);
+      return sub;
     } catch (error) {
       console.error('Failed to subscribe to events:', error);
+      throw error;
     }
   };
 
-  const subscribeToEventsCatch = async (dubhe: Dubhe) => {
-    const catchResult = {
+  const subscribeToEventsCatch = async (dubhe: Dubhe): Promise<WebSocket> => {
+    const catchResult: Record<string, string> = {
       Caught: 'Catch monster successed!',
       Fled: 'Monster got away.',
       Missed: 'Catch miss',
@@ -66,76 +63,110 @@ const Home = () => {
     try {
       const sub = await dubhe.subscribe(['monster_catch_attempt_event'], async data => {
         console.log('Catch monster event:', data);
-
+        
+        const result = data.result?.variant || 'Missed';
+        
         toast('Monster catch attempt event received', {
-          description: `Result: ${catchResult[data.result.variant]}`,
+          description: `Result: ${catchResult[result] || 'Unknown result'}`,
         });
 
-        if (data.result.variant !== 'Missed') {
+        if (result !== 'Missed') {
           setSendTxLog(prev => ({ ...prev, display: false }));
-          setMonster({
-            exist: false,
-          });
-          setHero(prev => ({
-            ...prev,
-            lock: false,
-          }));
+          setMonster({ exist: false });
+          setHero(prev => ({ ...prev, lock: false }));
         }
       });
-      setSubscriptionCatch(sub);
+      return sub;
     } catch (error) {
       console.error('Failed to subscribe to events:', error);
+      throw error;
     }
   };
 
   const initializeGameState = async (dubhe: Dubhe) => {
     try {
-      let have_player = await dubhe.getStorage({
+      console.log('Starting initializeGameState...');
+      
+      const have_player = await dubhe.getStorage({
         name: 'player',
-        key1: signerAddress,
+        key1: ADDRESS,
       });
+      console.log('Player data:', have_player);
+
+      if (!have_player?.edges?.length) {
+        const registerTx = new Transaction();
+        const params = [
+          registerTx.object(SCHEMA_ID), 
+          registerTx.pure.u64(0), 
+          registerTx.pure.u64(0)
+        ];
+        
+        registerTx.setGasBudget(100000000);
+        
+        const result = await dubhe.tx.map_system.register({
+          tx: registerTx,
+          params,
+          isRaw: true,
+        }) as TransactionResult;
+
+        if (result?.effects?.status?.status === 'success') {
+          setTimeout(() => {
+            toast('Register Successful', {
+              description: new Date().toUTCString(),
+              action: {
+                label: 'Check in Explorer',
+                onClick: () => window.open(dubhe.getTxExplorerUrl(result.digest), '_blank'),
+              },
+            });
+          }, 2000);
+
+          await dubhe.waitForTransaction(result.digest);
+        }
+      }
+
+      console.log(dubhe);
       console.log('======== v1 have_player ========');
       console.log(have_player);
-      if (have_player.edges.length === 0) {
+      console.log(have_player.edges.length);
+      if (have_player.edges.length === 0) { 
+        console.log("why?");
+        
         const registerTx = new Transaction();
+        console.log("why1?");
         const params = [registerTx.object(SCHEMA_ID), registerTx.pure.u64(0), registerTx.pure.u64(0)];
+        console.log("why2");
         registerTx.setGasBudget(100000000);
+        console.log("why3");
         await dubhe.tx.map_system.register({
           tx: registerTx,
           params,
           isRaw: true,
         });
-        const { digest } = await signAndExecuteTransaction(
-          {
-            transaction: registerTx.serialize(),
-            chain: `sui:${NETWORK}`,
-          },
-          {
-            onSuccess: async result => {
-              setTimeout(async () => {
-                toast('Register Successful', {
-                  description: new Date().toUTCString(),
-                  action: {
-                    label: 'Check in Explorer',
-                    onClick: () => window.open(dubhe.getTxExplorerUrl(result.digest), '_blank'),
-                  },
-                });
-              }, 2000);
+      const result = await dubhe.signAndSendTxn(registerTx);
+      console.log("11111");
+      
+
+      if (result.effects.status.status == 'success') {
+        console.log('Transaction successful, digest:', result.digest);
+
+        setTimeout(async () => {
+          toast('Register Successful', {
+            description: new Date().toUTCString(),
+            action: {
+              label: 'Check in Explorer',
+              onClick: () => window.open(dubhe.getTxExplorerUrl(result.digest), '_blank'),
             },
-            onError: error => {
-              console.error('Transaction failed:', error);
-              toast.error('Transaction failed. Please try again.');
-            },
-          },
-        );
-        await dubhe.waitForTransaction(digest);
+          });
+        }, 2000);
+      }
+        await dubhe.waitForTransaction(result.digest);
       }
       console.log('======== v1 end ========');
       const entityPositionTx = new Transaction();
       let player_data = await dubhe.state({
         tx: entityPositionTx,
         schema: 'position',
-        params: [entityPositionTx.object(SCHEMA_ID), entityPositionTx.pure.address(signerAddress)],
+        params: [entityPositionTx.object(SCHEMA_ID), entityPositionTx.pure.address(ADDRESS)],
       });
       console.log('======== v1 player_data ========');
       console.log('player_data structure:', player_data);
@@ -145,7 +176,7 @@ const Home = () => {
       const owned_monsters = await dubhe.state({
         tx: entityMonsterTx,
         schema: 'monster',
-        params: [entityMonsterTx.object(SCHEMA_ID), entityMonsterTx.pure.address(signerAddress)],
+        params: [entityMonsterTx.object(SCHEMA_ID), entityMonsterTx.pure.address(ADDRESS)],
       });
       if (owned_monsters !== undefined) {
         setOwnedMonster(owned_monsters[0]);
@@ -156,7 +187,7 @@ const Home = () => {
       let encounter_contain_data = await dubhe.state({
         tx: entityEncounterableTx,
         schema: 'monster_info',
-        params: [entityEncounterableTx.object(SCHEMA_ID), entityEncounterableTx.pure.address(signerAddress)],
+        params: [entityEncounterableTx.object(SCHEMA_ID), entityEncounterableTx.pure.address(ADDRESS)],
       });
       console.log('======== v1 encounter_contain_data ========');
       console.log(encounter_contain_data);
@@ -167,7 +198,7 @@ const Home = () => {
       console.log(JSON.stringify(player_data));
       const stepLength = 2.5;
       setHero({
-        name: signerAddress,
+        name: ADDRESS,
         position: {
           left: (player_data && player_data[0].x ? player_data[0].x : 0) * stepLength,
           top: (player_data && player_data[0].y ? player_data[0].y : 0) * stepLength,
@@ -221,11 +252,13 @@ const Home = () => {
         events: [],
         map_type: 'event',
       });
+      
+      setIsLoading(false);
     } catch (error) {
       console.error('Failed to initialize game state:', error);
       toast.error('Failed to load initial game state');
-
-      // 错误时设置默认地图数据
+      setIsLoading(false);
+      
       setMapData({
         map: [],
         type: 'green',
@@ -241,55 +274,81 @@ const Home = () => {
     }
   };
 
-  const rpgworld = async () => {
-    const metadata = await loadMetadata(NETWORK, PACKAGE_ID);
-    setContractMetadata(metadata);
-    const dubhe = new Dubhe({
-      networkType: NETWORK,
-      packageId: PACKAGE_ID,
-      metadata: metadata,
-    });
-    await initializeGameState(dubhe);
-    await subscribeToEvents(dubhe);
-    await subscribeToEventsCatch(dubhe);
-    setIsLoading(true);
-  };
-
-  useEffect(() => {
-    if (router.isReady && connectionStatus === 'connected' && signerAddress) {
-      console.log(1);
-      rpgworld();
-    }
-  }, [router.isReady, connectionStatus, signerAddress]);
-
-  useEffect(() => {
-    if (signerAddress) {
+  const initializeDubhe = async () => {
+    try {
+      const metadata = await loadMetadata(NETWORK, PACKAGE_ID);
+      setContractMetadata(metadata);
+      
       const dubhe = new Dubhe({
         networkType: NETWORK,
         packageId: PACKAGE_ID,
-        metadata: contractMetadata,
+        metadata: metadata,
+        secretKey: PRIVATE_KEY,
       });
 
-      initializeGameState(dubhe);
-
-      subscribeToEvents(dubhe);
-      subscribeToEventsCatch(dubhe);
-      return () => {
-        if (subscription) {
-          subscription.close();
-        }
-        if (subscriptionCatch) {
-          subscriptionCatch.close();
-        }
-      };
+      // Test connection
+      await dubhe.getProvider().getLatestCheckpointSequenceNumber();
+      
+      return dubhe;
+    } catch (error) {
+      console.error('Dubhe initialization error:', {
+        error,
+        message: error.message,
+        stack: error.stack
+      });
+      toast.error(`Network connection failed: ${error.message}`);
+      throw error;
     }
-  }, [signerAddress]);
+  };
 
-  if (isLoading) {
+  useEffect(() => {
+    let mounted = true;
+    let dubheInstance: Dubhe | null = null;
+
+    const initialize = async () => {
+      if (!ADDRESS) return;
+
+      try {
+        dubheInstance = await initializeDubhe();
+        if (!mounted) return;
+
+        await initializeGameState(dubheInstance);
+        if (!mounted) return;
+
+        const newSubscription = await subscribeToEvents(dubheInstance);
+        const newCatchSubscription = await subscribeToEventsCatch(dubheInstance);
+        
+        if (!mounted) {
+          newSubscription?.close();
+          newCatchSubscription?.close();
+          return;
+        }
+
+        setSubscription(newSubscription);
+        setSubscriptionCatch(newCatchSubscription);
+      } catch (error) {
+        console.error('Initialization failed:', error);
+        toast.error('Failed to initialize game. Please try refreshing the page.');
+      }
+    };
+
+    initialize();
+
+    return () => {
+      mounted = false;
+      if (subscription) subscription.close();
+      if (subscriptionCatch) subscriptionCatch.close();
+    };
+  }, [ADDRESS]);
+
     return (
       <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
         <div style={{ minHeight: '1px', display: 'flex', marginBottom: '20px', position: 'relative' }}>
-          <Map />
+          {isLoading ? (
+            <div>Loading...</div>
+          ) : (
+            <Map />
+          )}
           <div style={{ width: 'calc(20vw - 1rem)', maxHeight: '100vh', marginLeft: '10px' }}>
             <></>
           </div>
@@ -307,13 +366,6 @@ const Home = () => {
         </div>
       </div>
     );
-  } else {
-    return (
-      <div>
-        <ConnectButton>Connect Wallet</ConnectButton>
-      </div>
-    );
-  }
 };
 
 export default Home;

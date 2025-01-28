@@ -1,42 +1,43 @@
 import { DevInspectResults, Dubhe, Transaction } from '@0xobelisk/sui-client';
 import { useEffect, useState, useRef, useMemo, ReactElement } from 'react';
-
 import { useAtom, useSetAtom, useAtomValue } from 'jotai';
 import { MapData, ContractMetadata, Dialog, SendTxLog, Hero, Monster, OwnedMonster, TerrainItemType } from '../state';
 import { NETWORK, PACKAGE_ID, SCHEMA_ID } from '../chain/config';
-// import { PRIVATEKEY } from '../chain/key';
 import { TransactionResult } from '@0xobelisk/sui-client/src';
-import { ConnectButton, useCurrentWallet, useSignAndExecuteTransaction, useCurrentAccount } from '@mysten/dapp-kit';
 import { toast } from 'sonner';
+import { ADDRESS, PRIVATE_KEY } from 'src/chain/wallet';
 
 export default function Map() {
-  const treasureCount = 2;
-  const spriteCount = 5;
-
-  let playerSprites = {
+  const playerSprites = {
     W: 'assets/player/W.gif',
     S: 'assets/player/S.gif',
     A: 'assets/player/A.gif',
     D: 'assets/player/D.gif',
   };
-
-  const { mutateAsync: signAndExecuteTransaction } = useSignAndExecuteTransaction();
-  const { connectionStatus } = useCurrentWallet();
-  const signerAddress = useCurrentAccount()?.address;
-
   const [heroImg, setHeroImg] = useState(playerSprites['S']);
-
-  let [rowNumber, setRowNumber] = useState(1);
-  let [unboxState, setUnboxState] = useState({});
+  const [rowNumber, setRowNumber] = useState(1);
   const mapData = useAtomValue(MapData);
   const contractMetadata = useAtomValue(ContractMetadata);
   const [monster, setMonster] = useAtom(Monster);
-  const [ownedMonster, setOwnedMonster] = useAtom(OwnedMonster);
   const [hero, setHero] = useAtom(Hero);
   const setDialog = useSetAtom(Dialog);
   const setSendTxLog = useSetAtom(SendTxLog);
-
   const [stepTransactions, setStepTransactions] = useState<any[][]>([]);
+  const [heroPosition, setHeroPosition] = useState({ 
+    left: hero['position']['left'], 
+    top: hero['position']['top'] 
+  });
+  const [haveMonster, setHaveMonster] = useState(monster['exist']);
+
+  // Add data validation check at the beginning of the component
+  if (!mapData?.map?.length || !mapData.map[0]?.length) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-xl font-bold">Loading map data...</div>
+      </div>
+    );
+  }
+
   // fill screen with rows of block
   const calcOriginalMapRowNumber = function (height: any, width: any) {
     // subtract the p tag height
@@ -71,32 +72,6 @@ export default function Map() {
     });
     return result;
   };
-
-  // const initialRandomState = () => {
-  //   console.log('initialRandomState');
-  //   console.log(mapData);
-  //   if (mapData.map.length === 0) {
-  //     return {};
-  //   }
-  //   let randomState = {};
-  //   // console.log(mapData.map[0]);
-  //   for (let i = 0; i < mapData.map.length; i++) {
-  //     for (let j = 0; j < 32; j++) {
-  //       let key = `${i}-${j}`;
-  //       randomState[key] = Math.floor(Math.random() * spriteCount + 1);
-  //       if (
-  //         mapData.ele_description.object !== undefined &&
-  //         withinRange(mapData.map[i][j], mapData.ele_description.object)
-  //       ) {
-  //         randomState[key] = Math.floor(Math.random() * treasureCount + 1);
-  //       } else if (withinRange(mapData.map[i][j], mapData.ele_description.sprite)) {
-  //         randomState[key] = Math.floor(Math.random() * spriteCount + 1);
-  //       }
-  //     }
-  //   }
-  //   // setRandomState(randomState);
-  //   return randomState;
-  // };
 
   const initialEvents = () => {
     if (mapData.events === undefined) {
@@ -135,31 +110,6 @@ export default function Map() {
       className = 'unwalkable small-tree-img';
     } else if (withinRange(map[x][y], ele_description.tussock)) {
       className = 'walkable tussock';
-      // } else if (ele_description.object !== undefined && withinRange(map[x][y], ele_description.object)) {
-      //   let lockState = unboxState[`${x}-${y}`] === true ? 'unlocked' : 'locked';
-      //   let randomStateKey = randomState1[`${x}-${y}`];
-      //   const object = `treasure-${lockState}-${randomStateKey}`;
-      //   className = `unwalkable ${object}`;
-      //   img = (
-      //     <img
-      //       src={require(`../assets/img/block/${object}.png`)}
-      //       alt={object}
-      //       onClick={() => onInteract(x, y)}
-      //       style={{ cursor: ifInRange(x, y) ? 'pointer' : '' }}
-      //     />
-      //   );
-      // } else if (withinRange(map[x][y], ele_description.sprite)) {
-      //   const sprite = 'sprite' + randomState1[`${x}-${y}`];
-      //   className = `unwalkable ${sprite}`;
-      //   const ncp_image = mapData.map_type == 'gallery' ? 'gallery_house' : sprite;
-      //   img = (
-      //     <img
-      //       src={require(`../assets/img/block/${ncp_image}.png`)}
-      //       alt={ncp_image}
-      //       onClick={() => onInteract(x, y)}
-      //       style={{ cursor: ifInRange(x, y) ? 'pointer' : '' }}
-      //     />
-      //   );
     }
     return (
       <div className={`map-block flex ${className} ${blockType}`} key={key}>
@@ -187,10 +137,6 @@ export default function Map() {
   let targetPosition = null;
   const mapContainerRef = useRef(null);
   const heroRef = useRef(null);
-  const [heroPosition, setHeroPosition] = useState({ left: hero['position']['left'], top: hero['position']['top'] });
-  // const [heroIsLocked, setHeroIsLocked] = useState(hero['lock']);
-  const [haveMonster, setHaveMonster] = useState(monster['exist']);
-  // const [heroPosition, setHeroPosition] = useState({left: 5, top: 5});
 
   useEffect(() => {
     if (haveMonster === true) {
@@ -271,7 +217,7 @@ export default function Map() {
         networkType: NETWORK,
         packageId: PACKAGE_ID,
         metadata: contractMetadata,
-        // secretKey: PRIVATEKEY,
+        secretKey: process.env.PRIVATE_KEY,
       });
       console.log(txHash);
       const txResponse = await dubhe.waitForTransaction(txHash);
@@ -280,14 +226,14 @@ export default function Map() {
       const player_data = await dubhe.state({
         tx: mapPositionTx,
         schema: 'position',
-        params: [mapPositionTx.object(SCHEMA_ID), mapPositionTx.pure.address(signerAddress)],
+        params: [mapPositionTx.object(SCHEMA_ID), mapPositionTx.pure.address(ADDRESS)],
       });
       console.log('======== encounter info ========');
       let enconterTx = new Transaction();
       const encounter_info = await dubhe.state({
         tx: enconterTx,
         schema: 'monster_info',
-        params: [enconterTx.object(SCHEMA_ID), enconterTx.pure.address(signerAddress)],
+        params: [enconterTx.object(SCHEMA_ID), enconterTx.pure.address(ADDRESS)],
       });
       console.log(encounter_info);
       let encounter_contain = false;
@@ -296,7 +242,7 @@ export default function Map() {
       }
       const stepLength = 2.5;
       setHero({
-        name: signerAddress,
+        name: ADDRESS,
         position: { left: player_data[0] * stepLength, top: player_data[1] * stepLength },
         lock: encounter_contain,
       });
@@ -327,7 +273,7 @@ export default function Map() {
         networkType: NETWORK,
         packageId: PACKAGE_ID,
         metadata: contractMetadata,
-        // secretKey: PRIVATEKEY,
+        secretKey: PRIVATE_KEY
       });
       const stepTxB = new Transaction();
       let schemaObject = stepTxB.object(SCHEMA_ID);
@@ -389,32 +335,24 @@ export default function Map() {
       console.log(`Estimated Gas Budget: ${totalGas}, Number of Operations: ${stepTransactionsItem.length}`);
 
       let txHash = null;
-      await signAndExecuteTransaction(
-        {
-          transaction: stepTxB.serialize(),
-          chain: `sui:${NETWORK}`,
-        },
-        {
-          onSuccess: async result => {
-            txHash = result.digest;
-            console.log('Transaction successful, digest:', result.digest);
 
-            setTimeout(async () => {
-              toast('Transaction Successful', {
-                description: `${new Date().toUTCString()} - Gas Budget: ${totalGas}`,
-                action: {
-                  label: 'Check in Explorer',
-                  onClick: () => window.open(dubhe.getTxExplorerUrl(result.digest), '_blank'),
-                },
-              });
-            }, 2000);
-          },
-          onError: error => {
-            console.error('Transaction failed:', error);
-            toast.error(`Transaction failed. Gas budget might be insufficient (${totalGas})`);
-          },
-        },
-      );
+    
+      const result = await dubhe.signAndSendTxn(stepTxB);
+
+      if (result.effects.status.status == 'success') {
+        txHash = result.digest;
+        console.log('Transaction successful, digest:', result.digest);
+
+        setTimeout(async () => {
+          toast('Transaction Successful', {
+            description: `${new Date().toUTCString()} - Gas Budget: ${totalGas}`,
+            action: {
+              label: 'Check in Explorer',
+              onClick: () => window.open(dubhe.getTxExplorerUrl(result.digest), '_blank'),
+            },
+          });
+        }, 2000);
+      }
       return txHash;
     }
   };
@@ -495,31 +433,6 @@ export default function Map() {
     return !withinRange(mapData.map[x][y], mapData.ele_description.walkable);
   };
 
-  // const onInteract = async (npcX: number, npcY: number) => {
-  //   const currentPosition = getCoordinate(stepLength);
-  //   // check if npc is in range
-  //   if (
-  //     (currentPosition.x === npcX && (currentPosition.y - npcY == 1 || currentPosition.y - npcY == -1)) ||
-  //     (currentPosition.y === npcY && (currentPosition.x - npcX == 1 || currentPosition.x - npcX == -1))
-  //   ) {
-  //     // await interactNpc({x: npcX, y: npcY});
-  //     const targetBlock = mapData.map[npcX][npcY];
-  //     console.log(targetBlock);
-  //     if (withinRange(targetBlock, mapData.ele_description.sprite)) {
-  //       // await interactNpc({x: npcX, y: npcY});
-  //       await interactNpc();
-  //     } else if (withinRange(targetBlock, mapData.ele_description.object)) {
-  //       openTreasureBox({ x: npcX, y: npcY });
-  //       // } else if (withinRange(targetBlock, mapData.ele_description.obelisk_bottom)) {
-  //       //   openTreasureBox({ x: npcX, y: npcY });
-  //       // } else if (withinRange(targetBlock, mapData.ele_description.old_man)) {
-  //       //   openTreasureBox({ x: npcX, y: npcY });
-  //       // } else if (withinRange(targetBlock, mapData.ele_description.fat_man)) {
-  //       //   openTreasureBox({ x: npcX, y: npcY });
-  //     }
-  //   }
-  // };
-
   const interact = async (direction: string) => {
     if (!direction) {
       return;
@@ -574,59 +487,6 @@ export default function Map() {
     });
   };
 
-  const showNpcDialog = (dialogContent: any) => {
-    setDialog({
-      display: true,
-      content: dialogContent.text,
-      yesContent: dialogContent.btn.yes,
-      noContent: dialogContent.btn.no,
-    });
-  };
-
-  const openTreasureBox = targetPosition => {
-    let key = `${targetPosition.x}-${targetPosition.y}`;
-    let _unboxState = { ...unboxState };
-    _unboxState[key] = true;
-    setUnboxState(_unboxState);
-    // FIXME: use data to change element
-    const treasureBox = document.querySelectorAll('.map-row')[targetPosition.x].children.item(targetPosition.y);
-
-    treasureBox.className = treasureBox.className.replace('treasure-locked', 'treasure-unlocked');
-    treasureBox.children[0]['src'] = require('../assets/img/block/treasure-unlocked-1.png');
-  };
-
-  // const getInteractResponse = async () => {
-  //   const { x, y } = targetPosition;
-
-  //   // let interactApi = `https://indexer.obelisk.build?x=${y}&y=${x}&block_height=${blockNumber}`;
-
-  //   // let interactResponse = await axios
-  //   //   .get(interactApi)
-  //   //   .catch((err) => {
-  //   //     console.log(err);
-  //   //   });
-
-  //   // return interactResponse.data;
-  //   return {
-  //     text: 'hello, obelisk!',
-  //     btn: {
-  //       yes: 'yes',
-  //       no: 'no',
-  //     },
-  //   };
-  // };
-
-  const getOldManResponse = async () => {
-    const { x, y } = targetPosition;
-
-    return {
-      text: 'Please look forward to our future updates!',
-      btn: {
-        yes: 'I will',
-        no: 'no',
-      },
-    };
-  };
 
   useEffect(() => {
     const onKeyDown = async (ev: any) => {
@@ -761,15 +621,11 @@ export default function Map() {
         {stepTransactions.map((value: any, index: any) => (
           <>
             <div>
-              {/* {`(${value[0]}, ${value[1]}) ${value[2]}`} */}
               {`${value[2]}`}
             </div>
           </>
         ))}
       </div>
-      {/* <audio preload="auto" autoPlay loop>
-        <source src="/assets/music/home.mp3" type="audio/mpeg" />
-      </audio> */}
     </>
   );
 }
