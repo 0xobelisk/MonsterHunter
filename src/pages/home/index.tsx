@@ -286,9 +286,6 @@ const Home = () => {
         secretKey: PRIVATE_KEY,
       });
 
-      // Test connection
-      await dubhe.getProvider().getLatestCheckpointSequenceNumber();
-      
       return dubhe;
     } catch (error) {
       console.error('Dubhe initialization error:', {
