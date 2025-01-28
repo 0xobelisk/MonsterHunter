@@ -14,7 +14,7 @@
     "account:gen": "pnpm dubhe generate-key",
     "check-balance": "pnpm dubhe check-balance --network",
     "config:store": "pnpm dubhe config-store --output-ts-path ./src/chain/config.ts --network",
-    "indexer:sqlite": "pnpm sqlite-indexer --network",
+    "indexer:sqlite": "pnpm sqlite-indexer --force-regenesis --network",
     "// Development Environment": "----------------",
     "dev": "pnpm dev:localnet",
     "dev:localnet": "pnpm setup:localnet && pnpm next",
@@ -31,10 +31,10 @@
     "prod:mainnet": "pnpm config:store mainnet && pnpm next"
   },
   "dependencies": {
-    "@0xobelisk/sui-cli": "^1.0.10",
-    "@0xobelisk/sui-client": "^1.0.8",
-    "@0xobelisk/sui-common": "^1.0.5",
-    "@0xobelisk/sui-indexer": "^0.0.2",
+    "@0xobelisk/sui-cli": "^1.0.11",
+    "@0xobelisk/sui-client": "^1.0.9",
+    "@0xobelisk/sui-common": "^1.0.6",
+    "@0xobelisk/sui-indexer": "^0.0.3",
     "@mysten/dapp-kit": "0.14.46",
     "@mysten/sui": "1.19.0",
     "@reduxjs/toolkit": "^1.9.7",

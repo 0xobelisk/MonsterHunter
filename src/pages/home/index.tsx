@@ -27,11 +27,17 @@ const Home = () => {
   const [subscription, setSubscription] = useState<WebSocket | null>(null);
   const [subscriptionCatch, setSubscriptionCatch] = useState<WebSocket | null>(null);
   const subscribeToEvents = async (dubhe: Dubhe) => {
+    const catchResult = {
+      Caught: 'Catch monster successed!',
+      Fled: 'Monster got away.',
+      Missed: 'Catch miss',
+    };
+
     try {
-      const sub = await dubhe.subscribe(['position', 'monster_info', 'monster'], data => {
+      const sub = await dubhe.subscribe(['position', 'monster_info', 'monster_catch_attempt_event'], data => {
         console.log('Received real-time data:', data);
         if (data.name === 'position') {
-          const position = data.value.fields;
+          const position = data.value;
           const stepLength = 2.5;
           setHero(prev => ({
             ...prev,
@@ -62,6 +68,23 @@ const Home = () => {
           } else if (data.value === undefined) {
             setSendTxLog(prev => ({ ...prev, display: false }));
           }
+        } else if (data.name === 'monster_catch_attempt_event') {
+          console.log('======== indexer monster_catch_attempt_event ========');
+          console.log(data);
+          toast('Monster catch attempt event received', {
+            description: `Result: ${catchResult[data.value.result]}`,
+          });
+
+          if (data.value.result !== 'Missed') {
+            setSendTxLog(prev => ({ ...prev, display: false }));
+            setMonster({
+              exist: false,
+            });
+            setHero(prev => ({
+              ...prev,
+              lock: false,
+            }));
+          }
         }
       });
       setSubscription(sub);
@@ -70,47 +93,15 @@ const Home = () => {
     }
   };
 
-  const subscribeToEventsCatch = async (dubhe: Dubhe) => {
-    const catchResult = {
-      Caught: 'Catch monster successed!',
-      Fled: 'Monster got away.',
-      Missed: 'Catch miss',
-    };
-
-    try {
-      const sub = await dubhe.subscribe(['monster_catch_attempt_event'], async data => {
-        console.log('Catch monster event:', data);
-
-        toast('Monster catch attempt event received', {
-          description: `Result: ${catchResult[data.result.variant]}`,
-        });
-
-        if (data.result.variant !== 'Missed') {
-          setSendTxLog(prev => ({ ...prev, display: false }));
-          setMonster({
-            exist: false,
-          });
-          setHero(prev => ({
-            ...prev,
-            lock: false,
-          }));
-        }
-      });
-      setSubscriptionCatch(sub);
-    } catch (error) {
-      console.error('Failed to subscribe to events:', error);
-    }
-  };
-
   const initializeGameState = async (dubhe: Dubhe) => {
     try {
-      let have_player = await dubhe.getStorage({
+      let have_player = await dubhe.getStorageItem({
         name: 'player',
         key1: signerAddress,
       });
       console.log('======== v1 have_player ========');
       console.log(have_player);
-      if (have_player.edges.length === 0) {
+      if (have_player === undefined) {
         const registerTx = new Transaction();
         const params = [registerTx.object(SCHEMA_ID), registerTx.pure.u64(0), registerTx.pure.u64(0)];
         registerTx.setGasBudget(100000000);
@@ -272,8 +263,8 @@ const Home = () => {
       metadata: metadata,
     });
     await initializeGameState(dubhe);
-    await subscribeToEvents(dubhe);
-    await subscribeToEventsCatch(dubhe);
+    // await subscribeToEvents(dubhe);
+    // await subscribeToEventsCatch(dubhe);
     setIsLoading(true);
   };
 
@@ -295,7 +286,7 @@ const Home = () => {
       initializeGameState(dubhe);
 
       subscribeToEvents(dubhe);
-      subscribeToEventsCatch(dubhe);
+      // subscribeToEventsCatch(dubhe);
       return () => {
         if (subscription) {
           subscription.close();

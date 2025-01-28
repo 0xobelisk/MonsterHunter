@@ -2,17 +2,10 @@
 
   use std::ascii::string;
 
-  use sui::clock::Clock;
+  use monster_hunter::schema::Schema;
 
-  use monster_hunter::dapp_system;
+  public entry fun run(schema: &mut Schema, ctx: &mut TxContext) {
 
-  public entry fun run(clock: &Clock, ctx: &mut TxContext) {
-    // Create a dapp.
-    let mut dapp = dapp_system::create(string(b"monster_hunter"),string(b"monster_hunter contract"), clock , ctx);
-    // Create schemas
-    let mut schema = monster_hunter::schema::create(ctx);
-    // Logic that needs to be automated once the contract is deployed
-    {
 			let  o = monster_hunter::terrain_type::new_none();
             let  t = monster_hunter::terrain_type::new_tall_grass();
             let  b = monster_hunter::terrain_type::new_boulder();
@@ -65,9 +58,5 @@
                 }
             });
         });
-			};
-    // Authorize schemas and public share objects
-    dapp.add_schema(schema);
-    sui::transfer::public_share_object(dapp);
   }
 }
