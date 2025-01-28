@@ -103,25 +103,11 @@ const Home = () => {
         
         registerTx.setGasBudget(100000000);
         
-        const result = await dubhe.tx.map_system.register({
+        await dubhe.tx.map_system.register({
           tx: registerTx,
           params,
           isRaw: true,
         }) as TransactionResult;
-
-        if (result?.effects?.status?.status === 'success') {
-          setTimeout(() => {
-            toast('Register Successful', {
-              description: new Date().toUTCString(),
-              action: {
-                label: 'Check in Explorer',
-                onClick: () => window.open(dubhe.getTxExplorerUrl(result.digest), '_blank'),
-              },
-            });
-          }, 2000);
-
-          await dubhe.waitForTransaction(result.digest);
-        }
       }
 
       console.log(dubhe);
