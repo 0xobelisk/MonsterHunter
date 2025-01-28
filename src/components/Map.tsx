@@ -192,13 +192,13 @@ export default function Map() {
   const [haveMonster, setHaveMonster] = useState(monster['exist']);
   // const [heroPosition, setHeroPosition] = useState({left: 5, top: 5});
 
-  useEffect(() => {
-    if (haveMonster === true) {
-      console.log('have monster');
-      console.log(haveMonster);
-      interactPVP();
-    }
-  }, [haveMonster]);
+  // useEffect(() => {
+  //   if (haveMonster === true) {
+  //     console.log('have monster');
+  //     console.log(haveMonster);
+  //     interactPVP();
+  //   }
+  // }, [haveMonster]);
 
   // move moving-block when possible
   const move = async (direction: string, stepLength: number) => {
@@ -271,40 +271,21 @@ export default function Map() {
         networkType: NETWORK,
         packageId: PACKAGE_ID,
         metadata: contractMetadata,
-        // secretKey: PRIVATEKEY,
       });
-      console.log(txHash);
-      const txResponse = await dubhe.waitForTransaction(txHash);
-      console.log(txResponse);
-      const mapPositionTx = new Transaction();
-      const player_data = await dubhe.state({
-        tx: mapPositionTx,
-        schema: 'position',
-        params: [mapPositionTx.object(SCHEMA_ID), mapPositionTx.pure.address(signerAddress)],
-      });
-      console.log('======== encounter info ========');
+      await dubhe.waitForTransaction(txHash);
       let enconterTx = new Transaction();
       const encounter_info = await dubhe.state({
         tx: enconterTx,
         schema: 'monster_info',
         params: [enconterTx.object(SCHEMA_ID), enconterTx.pure.address(signerAddress)],
       });
-      console.log(encounter_info);
       let encounter_contain = false;
       if (encounter_info !== undefined) {
         encounter_contain = true;
       }
-      const stepLength = 2.5;
       setHero({
-        name: signerAddress,
-        position: { left: player_data[0] * stepLength, top: player_data[1] * stepLength },
+        ...hero,
         lock: encounter_contain,
-      });
-      console.log('---------- encounter_contain -------------');
-      console.log(encounter_contain);
-      setHaveMonster(encounter_contain);
-      setMonster({
-        exist: encounter_contain,
       });
     }
     if (stepTransactionsItem.length === 100) {

@@ -28,18 +28,21 @@ const Home = () => {
   const [subscriptionCatch, setSubscriptionCatch] = useState<WebSocket | null>(null);
   const subscribeToEvents = async (dubhe: Dubhe) => {
     try {
-      const sub = await dubhe.subscribe(['position', 'monster_info'], data => {
+      const sub = await dubhe.subscribe(['position', 'monster_info', 'monster'], data => {
         console.log('Received real-time data:', data);
         if (data.name === 'position') {
           const position = data.value.fields;
+          const stepLength = 2.5;
           setHero(prev => ({
             ...prev,
             position: {
-              left: position.x * 2.5,
-              top: position.y * 2.5,
+              left: position.x * stepLength,
+              top: position.y * stepLength,
             },
           }));
         } else if (data.name === 'monster_info') {
+          console.log('======== indexer monster_info ========');
+          console.log(data);
           const shouldLock = !!data.value;
           setMonster({
             exist: shouldLock,
@@ -48,6 +51,17 @@ const Home = () => {
             ...prev,
             lock: shouldLock,
           }));
+
+          if (shouldLock) {
+            setSendTxLog({
+              display: true,
+              content: 'Have monster',
+              yesContent: 'Throw',
+              noContent: 'Run',
+            });
+          } else if (data.value === undefined) {
+            setSendTxLog(prev => ({ ...prev, display: false }));
+          }
         }
       });
       setSubscription(sub);
@@ -177,6 +191,14 @@ const Home = () => {
       setMonster({
         exist: encounter_contain!,
       });
+      if (encounter_contain) {
+        setSendTxLog({
+          display: true,
+          content: 'Have monster',
+          yesContent: 'Throw',
+          noContent: 'Run',
+        });
+      }
 
       const mapConfigTx = new Transaction();
       const map_state = await dubhe.state({
