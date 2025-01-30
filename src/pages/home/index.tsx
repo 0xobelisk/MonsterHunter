@@ -65,7 +65,7 @@ const Home = () => {
               yesContent: 'Throw',
               noContent: 'Run',
             });
-          } else if (data.value === undefined) {
+          } else if (data.value === null) {
             setSendTxLog(prev => ({ ...prev, display: false }));
           }
         } else if (data.name === 'monster_catch_attempt_event') {
