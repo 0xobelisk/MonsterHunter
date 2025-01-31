@@ -79,9 +79,26 @@ body {
   height: 2.5vw;
   position: absolute;
   z-index: 1;
+}
 
-  /* overflow: hidden;    隐藏超出范围的图片
-  background-image: url(./assets/img/block/xiaozhi.png); */
+.moving-block .hero-name {
+  position: absolute;
+  top: -20px;
+  width: 100%;
+  text-align: center;
+  font-size: 12px;
+  color: #666;
+}
+
+.moving-block .xiaozhi {
+  width: 100%;
+  height: 100%;
+}
+
+.moving-block .xiaozhi img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
 .map-block {
@@ -368,4 +385,35 @@ progress {
   padding: 0.4em 0.4em;
   text-align: center;
   cursor: pointer;
+}
+
+.other-player {
+  position: absolute;
+  width: 2.5vw;
+  height: 2.5vw;
+  z-index: 2; /* 确保其他玩家显示在主角之上 */
+}
+
+.other-player .player-name {
+  position: absolute;
+  top: -20px;
+  width: 100%;
+  text-align: center;
+  font-size: 12px;
+  color: #666;
+}
+
+.other-player .player-avatar {
+  width: 100%;
+  height: 100%;
+}
+
+.other-player .player-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.other-player .xiaozhi img {
+  filter: hue-rotate(180deg); /* 给其他玩家添加颜色变化以区分 */
 }

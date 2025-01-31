@@ -49,6 +49,14 @@ export type AccountType = {
   loggedIn: boolean;
 };
 
+export type PlayerType = {
+  address: string;
+  position: {
+    left: number;
+    top: number;
+  };
+};
+
 const MapData = atom<MapDataType>({
   map: [],
   type: 'green',
@@ -124,4 +132,6 @@ const Account = atom({
   loggedIn: false,
 });
 
-export { MapData, ContractMetadata, SendTxLog, Dialog, Hero, Monster, OwnedMonster, Account };
+const AllPlayers = atom<PlayerType[]>([]);
+
+export { MapData, ContractMetadata, SendTxLog, Dialog, Hero, Monster, OwnedMonster, Account, AllPlayers };

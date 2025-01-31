@@ -9,6 +9,7 @@ import { dubheConfig } from '../../../dubhe.config';
 // import { PRIVATEKEY } from '../../chain/key';
 import { ConnectButton, useCurrentWallet, useSignAndExecuteTransaction, useCurrentAccount } from '@mysten/dapp-kit';
 import { toast } from 'sonner';
+import { AllPlayers } from '../../state';
 
 const Home = () => {
   const router = useRouter();
@@ -26,6 +27,8 @@ const Home = () => {
   const [hero, setHero] = useAtom(Hero);
   const [subscription, setSubscription] = useState<WebSocket | null>(null);
   const [subscriptionCatch, setSubscriptionCatch] = useState<WebSocket | null>(null);
+  const [allPlayers, setAllPlayers] = useAtom(AllPlayers);
+
   const subscribeToEvents = async (dubhe: Dubhe) => {
     const catchResult = {
       Caught: 'Catch monster successed!',
@@ -34,11 +37,16 @@ const Home = () => {
     };
 
     try {
-      const sub = await dubhe.subscribe(['position', 'monster_info', 'monster_catch_attempt_event'], data => {
+      const allPlayers = await dubhe.getStorage({
+        name: 'player',
+      });
+      const sub = await dubhe.subscribe(['position', 'monster_info', 'monster_catch_attempt_event', 'player'], data => {
         console.log('Received real-time data:', data);
         if (data.name === 'position') {
-          const position = data.value;
           const stepLength = 2.5;
+          const position = data.value;
+          const playerAddress = data.key1;
+
           setHero(prev => ({
             ...prev,
             position: {
@@ -46,6 +54,30 @@ const Home = () => {
               top: position.y * stepLength,
             },
           }));
+
+          if (allPlayers.data.find(p => p.key1 === playerAddress)) {
+            setAllPlayers(prev => {
+              const newPlayers = [...prev];
+              const playerIndex = newPlayers.findIndex(p => p.address === playerAddress);
+
+              if (playerIndex > -1) {
+                newPlayers[playerIndex].position = {
+                  left: position.x * stepLength,
+                  top: position.y * stepLength,
+                };
+              } else {
+                newPlayers.push({
+                  address: playerAddress,
+                  position: {
+                    left: position.x * stepLength,
+                    top: position.y * stepLength,
+                  },
+                });
+              }
+
+              return newPlayers;
+            });
+          }
         } else if (data.name === 'monster_info') {
           console.log('======== indexer monster_info ========');
           console.log(data);
@@ -137,11 +169,9 @@ const Home = () => {
         await dubhe.waitForTransaction(digest);
       }
       console.log('======== v1 end ========');
-      const entityPositionTx = new Transaction();
-      let player_data = await dubhe.state({
-        tx: entityPositionTx,
-        schema: 'position',
-        params: [entityPositionTx.object(SCHEMA_ID), entityPositionTx.pure.address(signerAddress)],
+      let player_data = await dubhe.getStorageItem({
+        name: 'position',
+        key1: signerAddress,
       });
       console.log('======== v1 player_data ========');
       console.log('player_data structure:', player_data);
@@ -175,8 +205,8 @@ const Home = () => {
       setHero({
         name: signerAddress,
         position: {
-          left: (player_data && player_data[0].x ? player_data[0].x : 0) * stepLength,
-          top: (player_data && player_data[0].y ? player_data[0].y : 0) * stepLength,
+          left: (player_data && player_data.value.x ? player_data.value.x : 0) * stepLength,
+          top: (player_data && player_data.value.y ? player_data.value.y : 0) * stepLength,
         },
         lock: encounter_contain!,
       });
@@ -235,11 +265,55 @@ const Home = () => {
         events: [],
         map_type: 'event',
       });
+
+      const allPlayers = await dubhe.getStorage({
+        name: 'player',
+      });
+
+      let userPositionList = [];
+      for (const player of allPlayers.data) {
+        const userPosition = await dubhe.getStorageItem({
+          name: 'position',
+          key1: player.key1,
+        });
+        userPositionList.push(userPosition);
+      }
+
+      console.log(userPositionList);
+      userPositionList.forEach(position => {
+        setAllPlayers(prev => {
+          const newPlayers = [...prev];
+          const playerIndex = newPlayers.findIndex(p => p.address === position.data.key1);
+
+          if (playerIndex > -1) {
+            newPlayers[playerIndex].position = {
+              left: position.value.x * stepLength,
+              top: position.value.y * stepLength,
+            };
+          } else {
+            console.log('======== v1 newPlayers ========');
+            console.log({
+              address: position.data.key1,
+              position: {
+                left: position.value.x * stepLength,
+                top: position.value.y * stepLength,
+              },
+            });
+            newPlayers.push({
+              address: position.data.key1,
+              position: {
+                left: position.value.x * stepLength,
+                top: position.value.y * stepLength,
+              },
+            });
+          }
+          return newPlayers;
+        });
+      });
     } catch (error) {
       console.error('Failed to initialize game state:', error);
       toast.error('Failed to load initial game state');
 
-      // 错误时设置默认地图数据
       setMapData({
         map: [],
         type: 'green',

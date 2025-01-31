@@ -2,7 +2,17 @@ import { DevInspectResults, Dubhe, Transaction } from '@0xobelisk/sui-client';
 import { useEffect, useState, useRef, useMemo, ReactElement } from 'react';
 
 import { useAtom, useSetAtom, useAtomValue } from 'jotai';
-import { MapData, ContractMetadata, Dialog, SendTxLog, Hero, Monster, OwnedMonster, TerrainItemType } from '../state';
+import {
+  MapData,
+  ContractMetadata,
+  Dialog,
+  SendTxLog,
+  Hero,
+  Monster,
+  OwnedMonster,
+  TerrainItemType,
+  AllPlayers,
+} from '../state';
 import { NETWORK, PACKAGE_ID, SCHEMA_ID } from '../chain/config';
 // import { PRIVATEKEY } from '../chain/key';
 import { TransactionResult } from '@0xobelisk/sui-client/src';
@@ -37,6 +47,8 @@ export default function Map() {
   const setSendTxLog = useSetAtom(SendTxLog);
 
   const [stepTransactions, setStepTransactions] = useState<any[][]>([]);
+  const allPlayers = useAtomValue(AllPlayers);
+
   // fill screen with rows of block
   const calcOriginalMapRowNumber = function (height: any, width: any) {
     // subtract the p tag height
@@ -719,6 +731,24 @@ export default function Map() {
               <img src={heroImg} alt="" />
             </div>
           </div>
+          {allPlayers.map(
+            player =>
+              player.address !== hero.name && (
+                <div
+                  key={player.address}
+                  id="moving-block"
+                  style={{
+                    left: `${player.position.left}vw`,
+                    top: `${player.position.top}vw`,
+                  }}
+                >
+                  <div id="hero-name">{`${player.address.slice(0, 6)}`}</div>
+                  <div className="xiaozhi">
+                    <img src="/assets/player/S.gif" alt="" />
+                  </div>
+                </div>
+              ),
+          )}
           <div id="map">
             {mapData.map &&
               mapData.map.map((row: any, rowId: any) => {
