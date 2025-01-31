@@ -1,10 +1,7 @@
 #[allow(lint(share_owned), unused_let_mut)]module monster_hunter::deploy_hook {
-
-  use std::ascii::string;
-
   use monster_hunter::schema::Schema;
 
-  public entry fun run(schema: &mut Schema, ctx: &mut TxContext) {
+  public entry fun run(schema: &mut Schema, _ctx: &mut TxContext) {
 
 			let  o = monster_hunter::terrain_type::new_none();
             let  t = monster_hunter::terrain_type::new_tall_grass();

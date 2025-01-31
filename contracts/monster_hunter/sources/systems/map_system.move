@@ -4,12 +4,10 @@ module monster_hunter::map_system {
     use sui::bcs;
     use monster_hunter::monster_info;
     use sui::address;
-    use sui::random::{Random, RandomGenerator};
-    use sui::random;
     use monster_hunter::direction;
+    use monster_hunter::position;
     use monster_hunter::direction::Direction;
     use monster_hunter::errors::{not_registered_error, cannot_move_error, space_obstructed_error, already_registered_error};
-    use monster_hunter::position;
     use monster_hunter::monster_type;
 
     public fun register(schema: &mut Schema,  x: u64, y: u64, ctx: &mut TxContext) {
