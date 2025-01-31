@@ -71,11 +71,12 @@ const Home = () => {
         } else if (data.name === 'monster_catch_attempt_event') {
           console.log('======== indexer monster_catch_attempt_event ========');
           console.log(data);
+          console.log(Object.keys(data.value.result));
           toast('Monster catch attempt event received', {
-            description: `Result: ${catchResult[data.value.result]}`,
+            description: `Result: ${catchResult[Object.keys(data.value.result)[0]]}`,
           });
 
-          if (data.value.result !== 'Missed') {
+          if (!data.value.result.Missed) {
             setSendTxLog(prev => ({ ...prev, display: false }));
             setMonster({
               exist: false,

@@ -2,7 +2,7 @@
 
 [move]
 version = 3
-manifest_digest = "F307247FF01A2C23916750433F3B8E8430FA5236627B7C7FA6957E1A479299BF"
+manifest_digest = "09C526A2D80A12107E6AEF419F29A80158D02CF78EE284689B59A0C1DE075CF6"
 deps_digest = "3C4103934B1E040BB6B23F1D610B4EF9F2F1166A50A104EADCF77467C004C600"
 dependencies = [
   { id = "Dubhe", name = "Dubhe" },
@@ -11,7 +11,7 @@ dependencies = [
 
 [[move.package]]
 id = "Dubhe"
-source = { git = "https://github.com/0xobelisk/dubhe-framework.git", rev = "dubhe-testnet-v1.1.0", subdir = "" }
+source = { local = "../dubhe-framework" }
 
 dependencies = [
   { id = "Sui", name = "Sui" },
@@ -30,21 +30,21 @@ dependencies = [
 ]
 
 [move.toolchain-version]
-compiler-version = "1.40.1"
+compiler-version = "1.38.3"
 edition = "2024"
 flavor = "sui"
 
 
 
 
-[env.localnet]
-chain-id = "4f1d2223"
-original-published-id = "0x8de1f27e590950175ca573c661104074b4bc4207b7c5786d866829713602a049"
-latest-published-id = "0x8de1f27e590950175ca573c661104074b4bc4207b7c5786d866829713602a049"
-published-version = "1"
-
 [env.testnet]
 chain-id = "4c78adac"
 original-published-id = "0xda4e0a5d70c009cb1d4c8d73c62564e016c9399073808d1549e2fb0aff081260"
 latest-published-id = "0xda4e0a5d70c009cb1d4c8d73c62564e016c9399073808d1549e2fb0aff081260"
+published-version = "1"
+
+[env.localnet]
+chain-id = "5cffa15f"
+original-published-id = "0xbca6030b9795e9769fcd0292291869943c362ecefca2bcfce0808b1853d2c86a"
+latest-published-id = "0xbca6030b9795e9769fcd0292291869943c362ecefca2bcfce0808b1853d2c86a"
 published-version = "1"
