@@ -34,23 +34,15 @@
                 let terrain = terrains[y][x];
                 let entity_key = monster_hunter::map_system::position_to_address(x, y);
                 let position = monster_hunter::position::new(x, y);
-                schema.position().set(entity_key, position);
                 // std::debug::print(&position);
                 // std::debug::print(&terrain);
                 if (terrain == monster_hunter::terrain_type::new_none()) {
-                    schema.obstruction().set(entity_key, false);
-                    schema.encounterable().set(entity_key, false);
-                    schema.moveable().set(entity_key, false);
-                    schema.encounter_trigger().set(entity_key, false);
+
                 } else if (terrain == monster_hunter::terrain_type::new_boulder()) {
+                    schema.position().set(entity_key, position);
                     schema.obstruction().set(entity_key, true);
-                    schema.encounterable().set(entity_key, false);
-                    schema.moveable().set(entity_key, false);
-                    schema.encounter_trigger().set(entity_key, false);
                 } else if (terrain == monster_hunter::terrain_type::new_tall_grass()) {
-                    schema.obstruction().set(entity_key, false);
-                    schema.encounterable().set(entity_key, false);
-                    schema.moveable().set(entity_key, false);
+                    schema.position().set(entity_key, position);
                     schema.encounter_trigger().set(entity_key, true);
                 }
             });

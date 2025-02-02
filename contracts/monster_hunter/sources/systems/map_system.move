@@ -79,14 +79,14 @@ module monster_hunter::map_system {
         // std::debug::print(&rand);
 
         let rand = sui::clock::timestamp_ms(clock);
-        if(schema.player()[player] && schema.encounter_trigger()[space_addr]) {
+        if(schema.player()[player] && schema.encounter_trigger().contains(space_addr)){
             if (rand % 2 == 0) {
                 start_encounter(schema, clock, player);
             }
         }
     }
 
-      public fun insert_map_metadata(schema: &mut Schema,schema_id:address,package_id:address){
+      public fun insert_map_metadata(schema: &mut Schema,schema_id:address,package_id:address) {
         schema.map_metadata().set(schema_id, package_id);
     }
 
