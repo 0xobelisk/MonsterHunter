@@ -122,6 +122,30 @@
     storage::borrow_mut_field(&mut self.id, b"monster_info")
   }
 
+  public fun borrow_map_metadata(self: &Schema): &StorageMap<address, address> {
+    storage::borrow_field(&self.id, b"map_metadata")
+  }
+
+  public(package) fun map_metadata(self: &mut Schema): &mut StorageMap<address, address> {
+    storage::borrow_mut_field(&mut self.id, b"map_metadata")
+  }
+
+  public fun borrow_local_map_connections(self: &Schema): &StorageMap<address, Position> {
+    storage::borrow_field(&self.id, b"local_map_connections")
+  }
+
+  public(package) fun local_map_connections(self: &mut Schema): &mut StorageMap<address, Position> {
+    storage::borrow_mut_field(&mut self.id, b"local_map_connections")
+  }
+
+  public fun borrow_other_map_connections(self: &Schema): &StorageMap<address, Position> {
+    storage::borrow_field(&self.id, b"other_map_connections")
+  }
+
+  public(package) fun other_map_connections(self: &mut Schema): &mut StorageMap<address, Position> {
+    storage::borrow_mut_field(&mut self.id, b"other_map_connections")
+  }
+
   public(package) fun create(ctx: &mut TxContext): Schema {
     let mut id = object::new(ctx);
     storage::add_field<StorageMap<address, bool>>(&mut id, b"player", storage_map::new(b"player", ctx));
@@ -134,6 +158,9 @@
     storage::add_field<StorageValue<MapConfig>>(&mut id, b"map_config", storage_value::new(b"map_config", ctx));
     storage::add_field<StorageMap<address, Position>>(&mut id, b"position", storage_map::new(b"position", ctx));
     storage::add_field<StorageMap<address, MonsterInfo>>(&mut id, b"monster_info", storage_map::new(b"monster_info", ctx));
+    storage::add_field<StorageMap<address, address>>(&mut id, b"map_metadata", storage_map::new(b"map_metadata", ctx));
+    storage::add_field<StorageMap<address, Position>>(&mut id, b"local_map_connections", storage_map::new(b"local_map_connections", ctx));
+    storage::add_field<StorageMap<address, Position>>(&mut id, b"other_map_connections", storage_map::new(b"other_map_connections", ctx));
     Schema { id }
   }
 
@@ -179,6 +206,18 @@
 
   public fun get_monster_info(self: &Schema, key: address): &MonsterInfo {
     self.borrow_monster_info().get(key)
+  }
+
+  public fun get_map_metadata(self: &Schema, key: address): &address {
+    self.borrow_map_metadata().get(key)
+  }
+
+  public fun get_local_map_connections(self: &Schema, key: address): &Position {
+    self.borrow_local_map_connections().get(key)
+  }
+
+  public fun get_other_map_connections(self: &Schema, key: address): &Position {
+    self.borrow_other_map_connections().get(key)
   }
 
   // =========================================================================================================

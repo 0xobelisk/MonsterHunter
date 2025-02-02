@@ -1,8 +1,8 @@
 {
   "projectName": "monster_hunter",
   "network": "localnet",
-  "packageId": "0xbca6030b9795e9769fcd0292291869943c362ecefca2bcfce0808b1853d2c86a",
-  "schemaId": "0x562020dec62fc7a9cb0f0d8cb666091a3af72051ab5bb4869aef66539d5062c9",
+  "packageId": "0x089f0deefbdff856d14d45467c19d610a04b7c5636f174a1378b1b6b080c6a21",
+  "schemaId": "0xd2c6ef8629fd2d44a1a0325cbc91dc8a4d8f0d13e36bd442a97e37543eca0ff1",
   "schemas": {
     "player": "StorageMap<address, bool>",
     "encounterable": "StorageMap<address, bool>",
@@ -15,6 +15,6 @@
     "position": "StorageMap<address, Position>",
     "monster_info": "StorageMap<address, MonsterInfo>"
   },
-  "upgradeCap": "0xd68b705ace8771bd9bb9890b9f5a4df2f9516a5bcdd11dbb1059d24c1be82010",
+  "upgradeCap": "0x7b30d4c5d32f13f29571f5fc20c63127575ff5106c44787bf904e9156db68e5c",
   "version": 1
 }

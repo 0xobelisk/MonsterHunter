@@ -86,6 +86,15 @@ module monster_hunter::map_system {
         }
     }
 
+      public fun insert_map_metadata(schema: &mut Schema,schema_id:address,package_id:address){
+        schema.map_metadata().set(schema_id, package_id);
+    }
+
+    public fun insert_map_connections(schema: &mut Schema,schema_id:address,local_x: u64, local_y: u64,other_x: u64, other_y: u64){
+        schema.local_map_connections().set(schema_id, position::new(local_x, local_y));
+        schema.other_map_connections().set(schema_id, position::new(other_x, other_y));
+    }
+
     public fun position_to_address(x: u64, y: u64): address {
         let mut x = bcs::to_bytes(&(x as u128));
         let y = bcs::to_bytes(&(y as u128));

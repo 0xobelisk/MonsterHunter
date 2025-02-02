@@ -37,5 +37,8 @@ export const dubheConfig = {
     map_config: 'StorageValue<MapConfig>',
     position: 'StorageMap<address, Position>',
     monster_info: 'StorageMap<address, MonsterInfo>',
+    map_metadata:'StorageMap<address, address>',
+	  local_map_connections:'StorageMap<address, Position>',
+	  other_map_connections:'StorageMap<address, Position>'
     }
 } as DubheConfig;
