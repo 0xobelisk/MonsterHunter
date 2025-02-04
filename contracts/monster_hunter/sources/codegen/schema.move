@@ -90,11 +90,11 @@
     storage::borrow_mut_field(&mut self.id, b"monster")
   }
 
-  public fun borrow_owned_by(self: &Schema): &StorageMap<address, vector<address>> {
+  public fun borrow_owned_by(self: &Schema): &StorageMap<address, address> {
     storage::borrow_field(&self.id, b"owned_by")
   }
 
-  public(package) fun owned_by(self: &mut Schema): &mut StorageMap<address, vector<address>> {
+  public(package) fun owned_by(self: &mut Schema): &mut StorageMap<address, address> {
     storage::borrow_mut_field(&mut self.id, b"owned_by")
   }
 
@@ -130,7 +130,7 @@
     storage::add_field<StorageMap<address, bool>>(&mut id, b"obstruction", storage_map::new(b"obstruction", ctx));
     storage::add_field<StorageMap<address, bool>>(&mut id, b"encounter_trigger", storage_map::new(b"encounter_trigger", ctx));
     storage::add_field<StorageMap<address, MonsterType>>(&mut id, b"monster", storage_map::new(b"monster", ctx));
-    storage::add_field<StorageMap<address, vector<address>>>(&mut id, b"owned_by", storage_map::new(b"owned_by", ctx));
+    storage::add_field<StorageMap<address, address>>(&mut id, b"owned_by", storage_map::new(b"owned_by", ctx));
     storage::add_field<StorageValue<MapConfig>>(&mut id, b"map_config", storage_value::new(b"map_config", ctx));
     storage::add_field<StorageMap<address, Position>>(&mut id, b"position", storage_map::new(b"position", ctx));
     storage::add_field<StorageMap<address, MonsterInfo>>(&mut id, b"monster_info", storage_map::new(b"monster_info", ctx));
@@ -165,7 +165,7 @@
     self.borrow_monster().get(key)
   }
 
-  public fun get_owned_by(self: &Schema, key: address): &vector<address> {
+  public fun get_owned_by(self: &Schema, key: address): &address {
     self.borrow_owned_by().get(key)
   }
 

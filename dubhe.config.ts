@@ -33,7 +33,7 @@ export const dubheConfig = {
     obstruction: 'StorageMap<address, bool>',
     encounter_trigger: 'StorageMap<address, bool>',
     monster: 'StorageMap<address, MonsterType>',
-    owned_by: 'StorageMap<address, vector<address>>',
+    owned_by: 'StorageMap<address, address>',
     map_config: 'StorageValue<MapConfig>',
     position: 'StorageMap<address, Position>',
     monster_info: 'StorageMap<address, MonsterInfo>',
