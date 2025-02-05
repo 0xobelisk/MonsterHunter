@@ -9,43 +9,59 @@ import { SCHEMA_ID, NETWORK, PACKAGE_ID } from '@/chain/config';
 import { PRIVATEKEY } from '@/chain/key';
 import { toast } from 'sonner';
 
+// Constants for game configuration
+const STEP_LENGTH = 2.5;
+const GAS_BUDGET = 100000000;
+const CATCH_RESULTS = {
+  Caught: 'Catch monster successed!',
+  Fled: 'Monster got away.',
+  Missed: 'Catch miss',
+};
+
 export default function Home() {
+  // Game state management using Jotai
   const [mapData, setMapData] = useAtom(MapData);
   const [contractMetadata, setContractMetadata] = useAtom(ContractMetadata);
   const [monster, setMonster] = useAtom(Monster);
   const [sendTxLog, setSendTxLog] = useAtom(SendTxLog);
   const [ownedMonster, setOwnedMonster] = useAtom(OwnedMonster);
   const [hero, setHero] = useAtom(Hero);
-  const [subscription, setSubscription] = useState<WebSocket | null>(null);
   const [players, setPlayers] = useAtom(Players);
+
+  // Local state
+  const [subscription, setSubscription] = useState<WebSocket | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
 
+  /**
+   * Handles real-time game events through WebSocket subscription
+   * @param dubhe - Dubhe client instance
+   */
   const subscribeToEvents = async (dubhe: Dubhe) => {
-    const catchResult = {
-      Caught: 'Catch monster successed!',
-      Fled: 'Monster got away.',
-      Missed: 'Catch miss',
-    };
-
     try {
+      // Get all players for reference
       const allPlayers = await dubhe.getStorage({
         name: 'player',
       });
+
+      // Subscribe to multiple event types
       const sub = await dubhe.subscribe(['position', 'monster_info', 'monster_catch_attempt_event', 'player'], data => {
         console.log('Received real-time data:', data);
+
+        // Handle player position updates
         if (data.name === 'position') {
-          const stepLength = 2.5;
           const position = data.value;
           const playerAddress = data.key1;
 
+          // Update hero position
           setHero(prev => ({
             ...prev,
             position: {
-              left: position.x * stepLength,
-              top: position.y * stepLength,
+              left: position.x * STEP_LENGTH,
+              top: position.y * STEP_LENGTH,
             },
           }));
 
+          // Update other players' positions
           if (allPlayers.data.find(p => p.key1 === playerAddress)) {
             setPlayers(prev => {
               const newPlayers = [...prev];
@@ -53,33 +69,28 @@ export default function Home() {
 
               if (playerIndex > -1) {
                 newPlayers[playerIndex].position = {
-                  left: position.x * stepLength,
-                  top: position.y * stepLength,
+                  left: position.x * STEP_LENGTH,
+                  top: position.y * STEP_LENGTH,
                 };
               } else {
                 newPlayers.push({
                   address: playerAddress,
                   position: {
-                    left: position.x * stepLength,
-                    top: position.y * stepLength,
+                    left: position.x * STEP_LENGTH,
+                    top: position.y * STEP_LENGTH,
                   },
                 });
               }
-
               return newPlayers;
             });
           }
-        } else if (data.name === 'monster_info') {
-          console.log('======== indexer monster_info ========');
-          console.log(data);
+        }
+
+        // Handle monster encounter updates
+        else if (data.name === 'monster_info') {
           const shouldLock = !!data.value;
-          setMonster({
-            exist: shouldLock,
-          });
-          setHero(prev => ({
-            ...prev,
-            lock: shouldLock,
-          }));
+          setMonster({ exist: shouldLock });
+          setHero(prev => ({ ...prev, lock: shouldLock }));
 
           if (shouldLock) {
             setSendTxLog({
@@ -91,23 +102,19 @@ export default function Home() {
           } else if (data.value === null) {
             setSendTxLog(prev => ({ ...prev, display: false }));
           }
-        } else if (data.name === 'monster_catch_attempt_event') {
-          console.log('======== indexer monster_catch_attempt_event ========');
-          console.log(data);
-          console.log(Object.keys(data.value.result));
+        }
+
+        // Handle monster catch attempt results
+        else if (data.name === 'monster_catch_attempt_event') {
+          const result = Object.keys(data.value.result)[0];
           toast('Monster catch attempt event received', {
-            description: `Result: ${catchResult[Object.keys(data.value.result)[0]]}`,
+            description: `Result: ${CATCH_RESULTS[result]}`,
           });
 
           if (!data.value.result.Missed) {
             setSendTxLog(prev => ({ ...prev, display: false }));
-            setMonster({
-              exist: false,
-            });
-            setHero(prev => ({
-              ...prev,
-              lock: false,
-            }));
+            setMonster({ exist: false });
+            setHero(prev => ({ ...prev, lock: false }));
           }
         }
       });
@@ -117,169 +124,217 @@ export default function Home() {
     }
   };
 
+  /**
+   * Initializes the game state including player registration and data loading
+   * @param dubhe - Dubhe client instance
+   */
   const initializeGameState = async (dubhe: Dubhe) => {
     try {
+      // Check if player exists and register if needed
       let have_player = await dubhe.getStorageItem({
         name: 'player',
         key1: dubhe.getAddress(),
       });
-      console.log('======== v1 have_player ========');
-      console.log(have_player);
+
       if (have_player === undefined) {
-        const registerTx = new Transaction();
-        const params = [registerTx.object(SCHEMA_ID), registerTx.pure.u64(0), registerTx.pure.u64(0)];
-        registerTx.setGasBudget(100000000);
-        await dubhe.tx.map_system.register({
-          tx: registerTx,
-          params,
-          onSuccess: async result => {
-            setTimeout(async () => {
-              toast('Register Successful', {
-                description: new Date().toUTCString(),
-                action: {
-                  label: 'Check in Explorer',
-                  onClick: () => window.open(dubhe.getTxExplorerUrl(result.digest), '_blank'),
-                },
-              });
-            }, 2000);
-            await dubhe.waitForTransaction(result.digest);
-          },
-          onError: error => {
-            console.error('Transaction failed:', error);
-            toast.error('Transaction failed. Please try again.');
-          },
-        });
-      }
-      console.log('======== v1 end ========');
-      let player_data = await dubhe.getStorageItem({
-        name: 'position',
-        key1: dubhe.getAddress(),
-      });
-      console.log('======== v1 player_data ========');
-      console.log('player_data structure:', player_data);
-      console.log(player_data);
-
-      const entityMonsterTx = new Transaction();
-      const owned_monsters = await dubhe.state({
-        tx: entityMonsterTx,
-        schema: 'monster',
-        params: [entityMonsterTx.object(SCHEMA_ID), entityMonsterTx.pure.address(dubhe.getAddress())],
-      });
-      if (owned_monsters !== undefined) {
-        setOwnedMonster(owned_monsters[0]);
+        await registerNewPlayer(dubhe);
       }
 
-      const entityEncounterableTx = new Transaction();
-      let encounter_contain = false;
-      let encounter_contain_data = await dubhe.state({
-        tx: entityEncounterableTx,
-        schema: 'monster_info',
-        params: [entityEncounterableTx.object(SCHEMA_ID), entityEncounterableTx.pure.address(dubhe.getAddress())],
-      });
-      console.log('======== v1 encounter_contain_data ========');
-      console.log(encounter_contain_data);
-      if (encounter_contain_data !== undefined) {
-        encounter_contain = true;
-      }
-
-      console.log(JSON.stringify(player_data));
-      const stepLength = 2.5;
-      setHero({
-        name: dubhe.getAddress(),
-        position: {
-          left: (player_data && player_data.value.x ? player_data.value.x : 0) * stepLength,
-          top: (player_data && player_data.value.y ? player_data.value.y : 0) * stepLength,
-        },
-        lock: encounter_contain!,
-      });
-      setMonster({
-        exist: encounter_contain!,
-      });
-      console.log('======== v1 encounter_contain ========');
-      console.log(encounter_contain);
-      if (encounter_contain) {
-        setSendTxLog({
-          display: true,
-          content: 'Have monster',
-          yesContent: 'Throw',
-          noContent: 'Run',
-        });
-      }
-
-      // const mapConfigTx = new Transaction();
-      // const map_state = await dubhe.state({
-      //   tx: mapConfigTx,
-      //   schema: 'map_config',
-      //   params: [mapConfigTx.object(SCHEMA_ID)],
-      // });
-
-      const map_state = await dubhe.getStorageItem({
-        name: 'map_config',
-      });
-
-      console.log('======== v1 map_state ========');
-      console.log(map_state);
-
-      setMapData({
-        ...mapData,
-        width: map_state?.value?.terrain.length ?? 0,
-        height: map_state?.value?.terrain[0].length ?? 0,
-        terrain: map_state?.value?.terrain ?? [],
-        type: 'green',
-        events: [],
-        map_type: 'event',
-      });
-
-      const allPlayers = await dubhe.getStorage({
-        name: 'player',
-      });
-
-      let userPositionList = [];
-      for (const player of allPlayers.data) {
-        const userPosition = await dubhe.getStorageItem({
-          name: 'position',
-          key1: player.key1,
-        });
-        userPositionList.push(userPosition);
-      }
-
-      console.log(userPositionList);
-      userPositionList.forEach(position => {
-        setPlayers(prev => {
-          const newPlayers = [...prev];
-          const playerIndex = newPlayers.findIndex(p => p.address === position.data.key1);
-
-          if (playerIndex > -1) {
-            newPlayers[playerIndex].position = {
-              left: position.value.x * stepLength,
-              top: position.value.y * stepLength,
-            };
-          } else {
-            console.log('======== v1 newPlayers ========');
-            console.log({
-              address: position.data.key1,
-              position: {
-                left: position.value.x * stepLength,
-                top: position.value.y * stepLength,
-              },
-            });
-            newPlayers.push({
-              address: position.data.key1,
-              position: {
-                left: position.value.x * stepLength,
-                top: position.value.y * stepLength,
-              },
-            });
-          }
-          return newPlayers;
-        });
-      });
+      // Load player position and monster data
+      await loadPlayerData(dubhe);
+      await loadMonsterData(dubhe);
+      await loadMapData(dubhe);
+      await loadAllPlayersData(dubhe);
 
       setIsInitialized(true);
     } catch (error) {
       console.error('Failed to initialize game state:', error);
       toast.error('Failed to load initial game state');
       setIsInitialized(false);
+    }
+  };
+
+  /**
+   * Registers a new player in the game
+   * @param dubhe - Dubhe client instance
+   */
+  const registerNewPlayer = async (dubhe: Dubhe) => {
+    try {
+      const registerTx = new Transaction();
+      // Initialize player at position (0,0)
+      const params = [registerTx.object(SCHEMA_ID), registerTx.pure.u64(0), registerTx.pure.u64(0)];
+      registerTx.setGasBudget(GAS_BUDGET);
+
+      await dubhe.tx.map_system.register({
+        tx: registerTx,
+        params,
+        onSuccess: async result => {
+          toast.success('Player registered successfully');
+          await dubhe.waitForTransaction(result.digest);
+        },
+        onError: error => {
+          console.error('Failed to register player:', error);
+          toast.error('Failed to register player');
+        },
+      });
+    } catch (error) {
+      console.error('Register player error:', error);
+      throw error;
+    }
+  };
+
+  /**
+   * Loads the current player's position data
+   * @param dubhe - Dubhe client instance
+   */
+  const loadPlayerData = async (dubhe: Dubhe) => {
+    try {
+      const position = await dubhe.getStorageItem({
+        name: 'position',
+        key1: dubhe.getAddress(),
+      });
+
+      if (position) {
+        setHero(prev => ({
+          ...prev,
+          name: dubhe.getAddress(),
+          position: {
+            left: position.value.x * STEP_LENGTH,
+            top: position.value.y * STEP_LENGTH,
+          },
+        }));
+      }
+    } catch (error) {
+      console.error('Load player data error:', error);
+      throw error;
+    }
+  };
+
+  /**
+   * Loads monster data for the current game state
+   * @param dubhe - Dubhe client instance
+   */
+  const loadMonsterData = async (dubhe: Dubhe) => {
+    try {
+      const entityEncounterableTx = new Transaction();
+      let encounterContain = false;
+      let monsterInfo = await dubhe.state({
+        tx: entityEncounterableTx,
+        schema: 'monster_info',
+        params: [entityEncounterableTx.object(SCHEMA_ID), entityEncounterableTx.pure.address(dubhe.getAddress())],
+      });
+      if (monsterInfo !== undefined) {
+        encounterContain = true;
+      }
+
+      if (encounterContain) {
+        setMonster({ exist: true });
+        setHero(prev => ({ ...prev, lock: true }));
+        setSendTxLog({
+          display: true,
+          content: 'Have monster',
+          yesContent: 'Throw',
+          noContent: 'Run',
+        });
+      } else {
+        setMonster({ exist: false });
+        setHero(prev => ({ ...prev, lock: false }));
+      }
+
+      // Load owned monsters
+      const ownedMonsters = await dubhe.getStorageItem({
+        name: 'owned_monsters',
+        key1: dubhe.getAddress(),
+      });
+
+      if (ownedMonsters && ownedMonsters.value) {
+        setOwnedMonster(ownedMonsters.value);
+      }
+    } catch (error) {
+      console.error('Load monster data error:', error);
+      throw error;
+    }
+  };
+
+  /**
+   * Loads map configuration and terrain data
+   * @param dubhe - Dubhe client instance
+   */
+  const loadMapData = async (dubhe: Dubhe) => {
+    try {
+      const mapConfig = await dubhe.getStorageItem({
+        name: 'map_config',
+      });
+
+      if (mapConfig && mapConfig.value) {
+        setMapData({
+          ...mapData,
+          width: mapConfig.value.terrain.length ?? 0,
+          height: mapConfig.value.terrain[0].length ?? 0,
+          terrain: mapConfig.value.terrain ?? [],
+          type: 'green',
+          events: [],
+          map_type: 'event',
+        });
+        // setMapData({
+        //   width: mapConfig.value.width,
+        //   height: mapConfig.value.height,
+        //   terrain: mapConfig.value.terrain,
+        //   type: mapConfig.value.type || 'green',
+        //   ele_description: mapConfig.value.ele_description || {
+        //     walkable: [{ None: {} }, { TallGrass: {} }],
+        //     green: [{ None: {} }],
+        //     tussock: [{ TallGrass: {} }],
+        //     small_tree: [{ Boulder: {} }],
+        //   },
+        //   events: mapConfig.value.events || [],
+        //   map_type: mapConfig.value.map_type || 'event',
+        // });
+
+        // Debug log
+        console.log('Map Config:', mapConfig.value);
+      }
+    } catch (error) {
+      console.error('Load map data error:', error);
+      throw error;
+    }
+  };
+
+  /**
+   * Loads position data for all players in the game
+   * @param dubhe - Dubhe client instance
+   */
+  const loadAllPlayersData = async (dubhe: Dubhe) => {
+    try {
+      const allPlayers = await dubhe.getStorage({
+        name: 'player',
+      });
+
+      if (!allPlayers?.data) return;
+
+      const playerPositions = await Promise.all(
+        allPlayers.data.map(async player => {
+          const position = await dubhe.getStorageItem({
+            name: 'position',
+            key1: player.key1,
+          });
+
+          return {
+            address: player.key1,
+            position: position
+              ? {
+                  left: position.value.x * STEP_LENGTH,
+                  top: position.value.y * STEP_LENGTH,
+                }
+              : null,
+          };
+        }),
+      );
+
+      setPlayers(playerPositions.filter(p => p.position !== null));
+    } catch (error) {
+      console.error('Load all players data error:', error);
+      throw error;
     }
   };
 
@@ -292,6 +347,7 @@ export default function Home() {
         if (Object.keys(metadata).length === 0) {
           throw new Error('Contract metadata not loaded');
         }
+
         const dubhe = new Dubhe({
           networkType: NETWORK,
           packageId: PACKAGE_ID,
@@ -301,7 +357,6 @@ export default function Home() {
 
         await initializeGameState(dubhe);
         await subscribeToEvents(dubhe);
-        setIsInitialized(true);
       } catch (error) {
         console.error('Initialization failed:', error);
         toast.error('Failed to initialize game');
@@ -311,6 +366,7 @@ export default function Home() {
 
     initialize();
 
+    // Cleanup subscription on unmount
     return () => {
       if (subscription) {
         subscription.close();
@@ -334,13 +390,14 @@ export default function Home() {
           ele_description={mapData.ele_description}
           events={mapData.events}
           map_type={mapData.map_type}
+          metadata={contractMetadata}
         />
         <div className="w-[calc(20vw-1rem)] max-h-screen ml-2.5">
           <></>
         </div>
       </div>
       <DialogModal />
-      <PVPModal sendTxLog={sendTxLog} />
+      <PVPModal sendTxLog={sendTxLog} metadata={contractMetadata} />
       <div className="mx-2 my-2 bg-white text-black">
         {ownedMonster.map((data, index) => (
           <div key={index}>{`Monster-${index}: 0x${data}`}</div>

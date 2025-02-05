@@ -8,16 +8,15 @@ import { toast } from 'sonner';
 
 type Props = {
   sendTxLog: LogType;
+  metadata: any;
 };
 
-export function PVPModal({ sendTxLog }: Props) {
-  const contractMetadata = useAtomValue(ContractMetadata);
-
+export function PVPModal({ sendTxLog, metadata }: Props) {
   const flee = async () => {
     const dubhe = new Dubhe({
       networkType: NETWORK,
       packageId: PACKAGE_ID,
-      metadata: contractMetadata,
+      metadata,
       secretKey: PRIVATEKEY,
     });
 
@@ -52,7 +51,7 @@ export function PVPModal({ sendTxLog }: Props) {
     const dubhe = new Dubhe({
       networkType: NETWORK,
       packageId: PACKAGE_ID,
-      metadata: contractMetadata,
+      metadata,
       secretKey: PRIVATEKEY,
     });
 

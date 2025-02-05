@@ -26,9 +26,10 @@ type Props = {
     y: number;
   }[];
   map_type: string;
+  metadata: any;
 };
 
-export function Map({ width, height, terrain, players, type, ele_description, events, map_type }: Props) {
+export function Map({ width, height, terrain, players, type, ele_description, events, map_type, metadata }: Props) {
   let playerSprites = {
     W: 'assets/player/W.gif',
     S: 'assets/player/S.gif',
@@ -234,7 +235,7 @@ export function Map({ width, height, terrain, players, type, ele_description, ev
         const dubhe = new Dubhe({
           networkType: NETWORK,
           packageId: PACKAGE_ID,
-          metadata: contractMetadata,
+          metadata,
           secretKey: PRIVATEKEY,
         });
 
