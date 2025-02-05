@@ -1,24 +1,15 @@
-import { loadMetadata, Dubhe, Transaction, TransactionResult } from '@0xobelisk/sui-client';
+'use client';
+
+import { loadMetadata, Dubhe, Transaction } from '@0xobelisk/sui-client';
 import { useEffect, useState } from 'react';
 import { useAtom } from 'jotai';
-import { Map, DialogModal, PVPModal } from '../../components';
-import { MapData, ContractMetadata, Monster, OwnedMonster, Hero, SendTxLog } from '../../state';
-import { useRouter } from 'next/router';
-import { SCHEMA_ID, NETWORK, PACKAGE_ID } from '../../chain/config';
-import { dubheConfig } from '../../../dubhe.config';
-// import { PRIVATEKEY } from '../../chain/key';
-import { ConnectButton, useCurrentWallet, useSignAndExecuteTransaction, useCurrentAccount } from '@mysten/dapp-kit';
+import { Map, DialogModal, PVPModal } from '@/app/components';
+import { MapData, ContractMetadata, Monster, OwnedMonster, Hero, SendTxLog, Players } from '@/app/state';
+import { SCHEMA_ID, NETWORK, PACKAGE_ID } from '@/chain/config';
+import { PRIVATEKEY } from '@/chain/key';
 import { toast } from 'sonner';
-import { AllPlayers } from '../../state';
 
-const Home = () => {
-  const router = useRouter();
-
-  const { mutateAsync: signAndExecuteTransaction } = useSignAndExecuteTransaction();
-  const { connectionStatus } = useCurrentWallet();
-  const signerAddress = useCurrentAccount()?.address;
-
-  const [isLoading, setIsLoading] = useState(false);
+export default function Home() {
   const [mapData, setMapData] = useAtom(MapData);
   const [contractMetadata, setContractMetadata] = useAtom(ContractMetadata);
   const [monster, setMonster] = useAtom(Monster);
@@ -26,8 +17,8 @@ const Home = () => {
   const [ownedMonster, setOwnedMonster] = useAtom(OwnedMonster);
   const [hero, setHero] = useAtom(Hero);
   const [subscription, setSubscription] = useState<WebSocket | null>(null);
-  const [subscriptionCatch, setSubscriptionCatch] = useState<WebSocket | null>(null);
-  const [allPlayers, setAllPlayers] = useAtom(AllPlayers);
+  const [players, setPlayers] = useAtom(Players);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   const subscribeToEvents = async (dubhe: Dubhe) => {
     const catchResult = {
@@ -56,7 +47,7 @@ const Home = () => {
           }));
 
           if (allPlayers.data.find(p => p.key1 === playerAddress)) {
-            setAllPlayers(prev => {
+            setPlayers(prev => {
               const newPlayers = [...prev];
               const playerIndex = newPlayers.findIndex(p => p.address === playerAddress);
 
@@ -130,7 +121,7 @@ const Home = () => {
     try {
       let have_player = await dubhe.getStorageItem({
         name: 'player',
-        key1: signerAddress,
+        key1: dubhe.getAddress(),
       });
       console.log('======== v1 have_player ========');
       console.log(have_player);
@@ -141,37 +132,28 @@ const Home = () => {
         await dubhe.tx.map_system.register({
           tx: registerTx,
           params,
-          isRaw: true,
+          onSuccess: async result => {
+            setTimeout(async () => {
+              toast('Register Successful', {
+                description: new Date().toUTCString(),
+                action: {
+                  label: 'Check in Explorer',
+                  onClick: () => window.open(dubhe.getTxExplorerUrl(result.digest), '_blank'),
+                },
+              });
+            }, 2000);
+            await dubhe.waitForTransaction(result.digest);
+          },
+          onError: error => {
+            console.error('Transaction failed:', error);
+            toast.error('Transaction failed. Please try again.');
+          },
         });
-        const { digest } = await signAndExecuteTransaction(
-          {
-            transaction: registerTx.serialize(),
-            chain: `sui:${NETWORK}`,
-          },
-          {
-            onSuccess: async result => {
-              setTimeout(async () => {
-                toast('Register Successful', {
-                  description: new Date().toUTCString(),
-                  action: {
-                    label: 'Check in Explorer',
-                    onClick: () => window.open(dubhe.getTxExplorerUrl(result.digest), '_blank'),
-                  },
-                });
-              }, 2000);
-            },
-            onError: error => {
-              console.error('Transaction failed:', error);
-              toast.error('Transaction failed. Please try again.');
-            },
-          },
-        );
-        await dubhe.waitForTransaction(digest);
       }
       console.log('======== v1 end ========');
       let player_data = await dubhe.getStorageItem({
         name: 'position',
-        key1: signerAddress,
+        key1: dubhe.getAddress(),
       });
       console.log('======== v1 player_data ========');
       console.log('player_data structure:', player_data);
@@ -181,7 +163,7 @@ const Home = () => {
       const owned_monsters = await dubhe.state({
         tx: entityMonsterTx,
         schema: 'monster',
-        params: [entityMonsterTx.object(SCHEMA_ID), entityMonsterTx.pure.address(signerAddress)],
+        params: [entityMonsterTx.object(SCHEMA_ID), entityMonsterTx.pure.address(dubhe.getAddress())],
       });
       if (owned_monsters !== undefined) {
         setOwnedMonster(owned_monsters[0]);
@@ -192,7 +174,7 @@ const Home = () => {
       let encounter_contain_data = await dubhe.state({
         tx: entityEncounterableTx,
         schema: 'monster_info',
-        params: [entityEncounterableTx.object(SCHEMA_ID), entityEncounterableTx.pure.address(signerAddress)],
+        params: [entityEncounterableTx.object(SCHEMA_ID), entityEncounterableTx.pure.address(dubhe.getAddress())],
       });
       console.log('======== v1 encounter_contain_data ========');
       console.log(encounter_contain_data);
@@ -203,7 +185,7 @@ const Home = () => {
       console.log(JSON.stringify(player_data));
       const stepLength = 2.5;
       setHero({
-        name: signerAddress,
+        name: dubhe.getAddress(),
         position: {
           left: (player_data && player_data.value.x ? player_data.value.x : 0) * stepLength,
           top: (player_data && player_data.value.y ? player_data.value.y : 0) * stepLength,
@@ -213,6 +195,8 @@ const Home = () => {
       setMonster({
         exist: encounter_contain!,
       });
+      console.log('======== v1 encounter_contain ========');
+      console.log(encounter_contain);
       if (encounter_contain) {
         setSendTxLog({
           display: true,
@@ -222,46 +206,26 @@ const Home = () => {
         });
       }
 
-      const mapConfigTx = new Transaction();
-      const map_state = await dubhe.state({
-        tx: mapConfigTx,
-        schema: 'map_config',
-        params: [mapConfigTx.object(SCHEMA_ID)],
+      // const mapConfigTx = new Transaction();
+      // const map_state = await dubhe.state({
+      //   tx: mapConfigTx,
+      //   schema: 'map_config',
+      //   params: [mapConfigTx.object(SCHEMA_ID)],
+      // });
+
+      const map_state = await dubhe.getStorageItem({
+        name: 'map_config',
       });
 
+      console.log('======== v1 map_state ========');
+      console.log(map_state);
+
       setMapData({
-        map: map_state?.[0]?.terrain ?? [],
+        ...mapData,
+        width: map_state?.value?.terrain.length ?? 0,
+        height: map_state?.value?.terrain[0].length ?? 0,
+        terrain: map_state?.value?.terrain ?? [],
         type: 'green',
-        ele_description: {
-          walkable: [
-            {
-              None: true,
-              $kind: 'None',
-            },
-            {
-              TallGrass: true,
-              $kind: 'TallGrass',
-            },
-          ],
-          green: [
-            {
-              None: true,
-              $kind: 'None',
-            },
-          ],
-          tussock: [
-            {
-              TallGrass: true,
-              $kind: 'TallGrass',
-            },
-          ],
-          small_tree: [
-            {
-              Boulder: true,
-              $kind: 'Boulder',
-            },
-          ],
-        },
         events: [],
         map_type: 'event',
       });
@@ -281,7 +245,7 @@ const Home = () => {
 
       console.log(userPositionList);
       userPositionList.forEach(position => {
-        setAllPlayers(prev => {
+        setPlayers(prev => {
           const newPlayers = [...prev];
           const playerIndex = newPlayers.findIndex(p => p.address === position.data.key1);
 
@@ -310,98 +274,78 @@ const Home = () => {
           return newPlayers;
         });
       });
+
+      setIsInitialized(true);
     } catch (error) {
       console.error('Failed to initialize game state:', error);
       toast.error('Failed to load initial game state');
-
-      setMapData({
-        map: [],
-        type: 'green',
-        ele_description: {
-          walkable: [],
-          green: [],
-          tussock: [],
-          small_tree: [],
-        },
-        events: [],
-        map_type: 'event',
-      });
+      setIsInitialized(false);
     }
   };
 
-  const rpgworld = async () => {
-    const metadata = await loadMetadata(NETWORK, PACKAGE_ID);
-    setContractMetadata(metadata);
-    const dubhe = new Dubhe({
-      networkType: NETWORK,
-      packageId: PACKAGE_ID,
-      metadata: metadata,
-    });
-    await initializeGameState(dubhe);
-    // await subscribeToEvents(dubhe);
-    // await subscribeToEventsCatch(dubhe);
-    setIsLoading(true);
-  };
-
   useEffect(() => {
-    if (router.isReady && connectionStatus === 'connected' && signerAddress) {
-      console.log(1);
-      rpgworld();
-    }
-  }, [router.isReady, connectionStatus, signerAddress]);
+    const initialize = async () => {
+      try {
+        const metadata = await loadMetadata(NETWORK, PACKAGE_ID);
+        setContractMetadata(metadata);
 
-  useEffect(() => {
-    if (signerAddress) {
-      const dubhe = new Dubhe({
-        networkType: NETWORK,
-        packageId: PACKAGE_ID,
-        metadata: contractMetadata,
-      });
-
-      initializeGameState(dubhe);
-
-      subscribeToEvents(dubhe);
-      // subscribeToEventsCatch(dubhe);
-      return () => {
-        if (subscription) {
-          subscription.close();
+        if (Object.keys(metadata).length === 0) {
+          throw new Error('Contract metadata not loaded');
         }
-        if (subscriptionCatch) {
-          subscriptionCatch.close();
-        }
-      };
-    }
-  }, [signerAddress]);
+        const dubhe = new Dubhe({
+          networkType: NETWORK,
+          packageId: PACKAGE_ID,
+          metadata: metadata,
+          secretKey: PRIVATEKEY,
+        });
 
-  if (isLoading) {
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-        <div style={{ minHeight: '1px', display: 'flex', marginBottom: '20px', position: 'relative' }}>
-          <Map />
-          <div style={{ width: 'calc(20vw - 1rem)', maxHeight: '100vh', marginLeft: '10px' }}>
-            <></>
-          </div>
-        </div>
-        <DialogModal />
-        <PVPModal />
-        <div className="mx-2 my-2 bg-white text-black">
-          {ownedMonster.map((data, index) => {
-            return (
-              <>
-                <div>{`Monster-${index}: 0x${data}`}</div>
-              </>
-            );
-          })}
-        </div>
-      </div>
-    );
-  } else {
-    return (
-      <div>
-        <ConnectButton>Connect Wallet</ConnectButton>
-      </div>
-    );
+        await initializeGameState(dubhe);
+        await subscribeToEvents(dubhe);
+        setIsInitialized(true);
+      } catch (error) {
+        console.error('Initialization failed:', error);
+        toast.error('Failed to initialize game');
+        setIsInitialized(false);
+      }
+    };
+
+    initialize();
+
+    return () => {
+      if (subscription) {
+        subscription.close();
+      }
+    };
+  }, []);
+
+  if (!isInitialized) {
+    return <div>Loading...</div>;
   }
-};
 
-export default Home;
+  return (
+    <div className="flex flex-col h-full">
+      <div className="min-h-[1px] flex mb-5 relative">
+        <Map
+          width={mapData.width}
+          height={mapData.height}
+          terrain={mapData.terrain}
+          players={players}
+          type={mapData.type}
+          ele_description={mapData.ele_description}
+          events={mapData.events}
+          map_type={mapData.map_type}
+        />
+        <div className="w-[calc(20vw-1rem)] max-h-screen ml-2.5">
+          <></>
+        </div>
+      </div>
+      <DialogModal />
+      <PVPModal sendTxLog={sendTxLog} />
+      <div className="mx-2 my-2 bg-white text-black">
+        {ownedMonster.map((data, index) => (
+          <div key={index}>{`Monster-${index}: 0x${data}`}</div>
+        ))}
+      </div>
+    </div>
+  );
+}

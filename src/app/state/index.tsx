@@ -2,14 +2,16 @@ import { atom } from 'jotai';
 import { SuiMoveNormalizedModules } from '@0xobelisk/sui-client';
 
 export type TerrainItemType = {
-  None?: boolean;
-  TallGrass?: boolean;
-  Boulder?: boolean;
-  $kind: 'None' | 'TallGrass' | 'Boulder';
+  None?: {};
+  TallGrass?: {};
+  Boulder?: {};
+  // $kind: 'None' | 'TallGrass' | 'Boulder';
 };
 
 export type MapDataType = {
-  map: TerrainItemType[][];
+  width: number;
+  height: number;
+  terrain: TerrainItemType[][];
   type: string;
   ele_description: Record<string, TerrainItemType[]>;
   events: {
@@ -58,35 +60,37 @@ export type PlayerType = {
 };
 
 const MapData = atom<MapDataType>({
-  map: [],
+  width: 0,
+  height: 0,
+  terrain: [],
   type: 'green',
   ele_description: {
     walkable: [
       {
-        None: true,
-        $kind: 'None',
+        None: {},
+        // $kind: 'None',
       },
       {
-        TallGrass: true,
-        $kind: 'TallGrass',
+        TallGrass: {},
+        // $kind: 'TallGrass',
       },
     ],
     green: [
       {
-        None: true,
-        $kind: 'None',
+        None: {},
+        // $kind: 'None',
       },
     ],
     tussock: [
       {
-        TallGrass: true,
-        $kind: 'TallGrass',
+        TallGrass: {},
+        // $kind: 'TallGrass',
       },
     ],
     small_tree: [
       {
-        Boulder: true,
-        $kind: 'Boulder',
+        Boulder: {},
+        // $kind: 'Boulder',
       },
     ],
   },
@@ -132,6 +136,6 @@ const Account = atom({
   loggedIn: false,
 });
 
-const AllPlayers = atom<PlayerType[]>([]);
+const Players = atom<PlayerType[]>([]);
 
-export { MapData, ContractMetadata, SendTxLog, Dialog, Hero, Monster, OwnedMonster, Account, AllPlayers };
+export { MapData, ContractMetadata, SendTxLog, Dialog, Hero, Monster, OwnedMonster, Account, Players };

@@ -1,7 +1,7 @@
 import { Dialog } from '../state';
 import { useAtom } from 'jotai';
 
-export default function DialogModal(props: any) {
+export function DialogModal(props: any) {
   const [dialog, setDialog] = useAtom(Dialog);
 
   const closeNoDialog = () => {

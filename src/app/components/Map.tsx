@@ -1,28 +1,34 @@
-import { DevInspectResults, Dubhe, Transaction } from '@0xobelisk/sui-client';
+import { Dubhe, Transaction } from '@0xobelisk/sui-client';
 import { useEffect, useState, useRef, useMemo, ReactElement } from 'react';
 
-import { useAtom, useSetAtom, useAtomValue } from 'jotai';
-import {
-  MapData,
-  ContractMetadata,
-  Dialog,
-  SendTxLog,
-  Hero,
-  Monster,
-  OwnedMonster,
-  TerrainItemType,
-  AllPlayers,
-} from '../state';
-import { NETWORK, PACKAGE_ID, SCHEMA_ID } from '../chain/config';
-// import { PRIVATEKEY } from '../chain/key';
+import { useAtom, useAtomValue } from 'jotai';
+import { ContractMetadata, Hero, TerrainItemType } from '../state';
+import { NETWORK, PACKAGE_ID, SCHEMA_ID } from '../../chain/config';
 import { TransactionResult } from '@0xobelisk/sui-client/src';
-import { ConnectButton, useCurrentWallet, useSignAndExecuteTransaction, useCurrentAccount } from '@mysten/dapp-kit';
 import { toast } from 'sonner';
+import { PRIVATEKEY } from '../../chain/key';
 
-export default function Map() {
-  const treasureCount = 2;
-  const spriteCount = 5;
+type Props = {
+  width: number;
+  height: number;
+  terrain: TerrainItemType[][];
+  players: {
+    address: string;
+    position: {
+      left: number;
+      top: number;
+    };
+  }[];
+  type: string;
+  ele_description: Record<string, TerrainItemType[]>;
+  events: {
+    x: number;
+    y: number;
+  }[];
+  map_type: string;
+};
 
+export function Map({ width, height, terrain, players, type, ele_description, events, map_type }: Props) {
   let playerSprites = {
     W: 'assets/player/W.gif',
     S: 'assets/player/S.gif',
@@ -30,24 +36,12 @@ export default function Map() {
     D: 'assets/player/D.gif',
   };
 
-  const { mutateAsync: signAndExecuteTransaction } = useSignAndExecuteTransaction();
-  const { connectionStatus } = useCurrentWallet();
-  const signerAddress = useCurrentAccount()?.address;
-
   const [heroImg, setHeroImg] = useState(playerSprites['S']);
-
   let [rowNumber, setRowNumber] = useState(1);
-  let [unboxState, setUnboxState] = useState({});
-  const mapData = useAtomValue(MapData);
   const contractMetadata = useAtomValue(ContractMetadata);
-  const [monster, setMonster] = useAtom(Monster);
-  const [ownedMonster, setOwnedMonster] = useAtom(OwnedMonster);
   const [hero, setHero] = useAtom(Hero);
-  const setDialog = useSetAtom(Dialog);
-  const setSendTxLog = useSetAtom(SendTxLog);
 
   const [stepTransactions, setStepTransactions] = useState<any[][]>([]);
-  const allPlayers = useAtomValue(AllPlayers);
 
   // fill screen with rows of block
   const calcOriginalMapRowNumber = function (height: any, width: any) {
@@ -67,7 +61,7 @@ export default function Map() {
   };
 
   const isTerrainItem = (item: any): item is TerrainItemType => {
-    return item && typeof item === 'object' && '$kind' in item;
+    return item && typeof item === 'object';
   };
 
   const withinRange = (value: TerrainItemType, arr: TerrainItemType[]) => {
@@ -77,49 +71,23 @@ export default function Map() {
 
     let result = false;
     arr.forEach(item => {
-      if (isTerrainItem(item) && item.$kind === value.$kind) {
+      if (isTerrainItem(item) && Object.keys(item)[0] === Object.keys(value)[0]) {
         result = true;
       }
     });
     return result;
   };
 
-  // const initialRandomState = () => {
-  //   console.log('initialRandomState');
-  //   console.log(mapData);
-  //   if (mapData.map.length === 0) {
-  //     return {};
-  //   }
-  //   let randomState = {};
-  //   // console.log(mapData.map[0]);
-  //   for (let i = 0; i < mapData.map.length; i++) {
-  //     for (let j = 0; j < 32; j++) {
-  //       let key = `${i}-${j}`;
-  //       randomState[key] = Math.floor(Math.random() * spriteCount + 1);
-  //       if (
-  //         mapData.ele_description.object !== undefined &&
-  //         withinRange(mapData.map[i][j], mapData.ele_description.object)
-  //       ) {
-  //         randomState[key] = Math.floor(Math.random() * treasureCount + 1);
-  //       } else if (withinRange(mapData.map[i][j], mapData.ele_description.sprite)) {
-  //         randomState[key] = Math.floor(Math.random() * spriteCount + 1);
-  //       }
-  //     }
-  //   }
-  //   // setRandomState(randomState);
-  //   return randomState;
-  // };
-
   const initialEvents = () => {
-    if (mapData.events === undefined) {
+    if (events === undefined) {
       return {};
     }
-    if (mapData.events.length === 0) {
+    if (events.length === 0) {
       return {};
     }
     let eventsDict = {};
-    for (let i = 0; i < mapData.events.length; i++) {
-      let event = mapData.events[i];
+    for (let i = 0; i < events.length; i++) {
+      let event = events[i];
       let key = `${event.y}-${event.x}`;
       eventsDict[key] = event;
     }
@@ -127,9 +95,16 @@ export default function Map() {
   };
 
   // let randomState1 = useMemo(() => initialRandomState(), [mapData]);
-  let eventsState = useMemo(() => initialEvents(), [mapData]);
+  let eventsState = useMemo(() => initialEvents(), [events]);
 
-  const setBlockType = (map: any[][], x: number, y: number, ele_description: any, blockType: any, key: any) => {
+  const setBlockType = (
+    map: TerrainItemType[][],
+    x: number,
+    y: number,
+    ele_description: any,
+    blockType: any,
+    key: any,
+  ) => {
     let img: ReactElement;
     let className = '';
     const title =
@@ -140,7 +115,7 @@ export default function Map() {
       ) : (
         ''
       );
-    // console.log(map[x][y]);
+
     if (withinRange(map[x][y], ele_description.green)) {
       className = 'walkable green';
     } else if (withinRange(map[x][y], ele_description.small_tree)) {
@@ -200,34 +175,19 @@ export default function Map() {
   const mapContainerRef = useRef(null);
   const heroRef = useRef(null);
   const [heroPosition, setHeroPosition] = useState({ left: hero['position']['left'], top: hero['position']['top'] });
-  // const [heroIsLocked, setHeroIsLocked] = useState(hero['lock']);
-  const [haveMonster, setHaveMonster] = useState(monster['exist']);
-  // const [heroPosition, setHeroPosition] = useState({left: 5, top: 5});
-
-  // useEffect(() => {
-  //   if (haveMonster === true) {
-  //     console.log('have monster');
-  //     console.log(haveMonster);
-  //     interactPVP();
-  //   }
-  // }, [haveMonster]);
 
   // move moving-block when possible
   const move = async (direction: string, stepLength: number) => {
     if (willCrossBorder(direction, stepLength)) {
-      console.log('will cross border');
       return;
     }
     const currentPosition = getCoordinate(stepLength);
 
-    console.log(hero['lock']);
     if (hero['lock']) {
-      console.log('player is locked');
       return;
     }
 
     if (willCollide(currentPosition, direction)) {
-      console.log('collide');
       return;
     }
 
@@ -261,47 +221,39 @@ export default function Map() {
         break;
     }
     setStepTransactions(stepTransactionsItem);
-    console.log(stepTransactionsItem);
-    console.log(mapData.map[newPosition.top / stepLength][newPosition.left / stepLength]);
-    console.log(
-      withinRange(
-        mapData.map[newPosition.top / stepLength][newPosition.left / stepLength],
-        mapData.ele_description.tussock,
-      ),
+
+    const isTussock = withinRange(
+      terrain[newPosition.top / stepLength][newPosition.left / stepLength],
+      ele_description.tussock,
     );
-    if (
-      withinRange(
-        mapData.map[newPosition.top / stepLength][newPosition.left / stepLength],
-        mapData.ele_description.tussock,
-      )
-    ) {
-      console.log('------------- in tussock');
 
-      const txHash = await savingGameWorld(true);
+    if (isTussock || stepTransactionsItem.length === 1) {
+      const txHash = await savingGameWorld(isTussock);
 
-      const dubhe = new Dubhe({
-        networkType: NETWORK,
-        packageId: PACKAGE_ID,
-        metadata: contractMetadata,
-      });
-      await dubhe.waitForTransaction(txHash);
-      let enconterTx = new Transaction();
-      const encounter_info = await dubhe.state({
-        tx: enconterTx,
-        schema: 'monster_info',
-        params: [enconterTx.object(SCHEMA_ID), enconterTx.pure.address(signerAddress)],
-      });
-      let encounter_contain = false;
-      if (encounter_info !== undefined) {
-        encounter_contain = true;
+      if (isTussock) {
+        const dubhe = new Dubhe({
+          networkType: NETWORK,
+          packageId: PACKAGE_ID,
+          metadata: contractMetadata,
+          secretKey: PRIVATEKEY,
+        });
+
+        await dubhe.waitForTransaction(txHash);
+        let enconterTx = new Transaction();
+        const encounter_info = await dubhe.state({
+          tx: enconterTx,
+          schema: 'monster_info',
+          params: [enconterTx.object(SCHEMA_ID), enconterTx.pure.address(dubhe.getAddress())],
+        });
+        let encounter_contain = false;
+        if (encounter_info !== undefined) {
+          encounter_contain = true;
+        }
+        setHero({
+          ...hero,
+          lock: encounter_contain,
+        });
       }
-      setHero({
-        ...hero,
-        lock: encounter_contain,
-      });
-    }
-    if (stepTransactionsItem.length === 100) {
-      await savingGameWorld();
     }
   };
 
@@ -313,103 +265,97 @@ export default function Map() {
       });
     }
 
-    if (stepTransactions.length !== 0) {
-      let stepTransactionsItem = stepTransactions;
-      setStepTransactions([]);
-      const dubhe = new Dubhe({
-        networkType: NETWORK,
-        packageId: PACKAGE_ID,
-        metadata: contractMetadata,
-        // secretKey: PRIVATEKEY,
-      });
-      const stepTxB = new Transaction();
-      let schemaObject = stepTxB.object(SCHEMA_ID);
-      let clockObject = stepTxB.object.clock();
+    if (stepTransactions.length === 0) {
+      return null;
+    }
 
-      // Calculate dynamic gas budget
-      // Base gas budget
-      const BASE_GAS = 10000000;
-      // Additional gas cost per move operation
-      const MOVE_OPERATION_GAS = 1000000;
-      // Calculate total gas based on number of operations
-      const totalGas = BASE_GAS + stepTransactionsItem.length * MOVE_OPERATION_GAS;
+    let stepTransactionsItem = stepTransactions;
+    setStepTransactions([]);
 
-      // Set gas budget
-      stepTxB.setGasBudget(totalGas);
+    const dubhe = new Dubhe({
+      networkType: NETWORK,
+      packageId: PACKAGE_ID,
+      metadata: contractMetadata,
+      secretKey: PRIVATEKEY,
+    });
 
-      for (let historyDirection of stepTransactionsItem) {
-        let direction = null;
-        switch (historyDirection[2]) {
-          case 'left':
-            console.log('Processing move: left');
-            direction = (await dubhe.tx.direction.new_west({
-              tx: stepTxB,
-              isRaw: true,
-            })) as TransactionResult;
-            break;
-          case 'top':
-            console.log('Processing move: top');
-            direction = (await dubhe.tx.direction.new_north({
-              tx: stepTxB,
-              isRaw: true,
-            })) as TransactionResult;
-            break;
-          case 'right':
-            console.log('Processing move: right');
-            direction = (await dubhe.tx.direction.new_east({
-              tx: stepTxB,
-              isRaw: true,
-            })) as TransactionResult;
-            break;
-          case 'bottom':
-            console.log('Processing move: bottom');
-            direction = (await dubhe.tx.direction.new_south({
-              tx: stepTxB,
-              isRaw: true,
-            })) as TransactionResult;
-            break;
-          default:
-            break;
-        }
-        await dubhe.tx.map_system.move_position({
-          tx: stepTxB,
-          params: [schemaObject, clockObject, direction],
-          isRaw: true,
-        });
+    const stepTxB = new Transaction();
+    let schemaObject = stepTxB.object(SCHEMA_ID);
+    let randomObject = stepTxB.object.random();
+
+    // Calculate dynamic gas budget
+    // Base gas budget
+    const BASE_GAS = 10000000;
+    // Additional gas cost per move operation
+    const MOVE_OPERATION_GAS = 1000000;
+    // Calculate total gas based on number of operations
+    const totalGas = BASE_GAS + stepTransactionsItem.length * MOVE_OPERATION_GAS;
+
+    // Set gas budget
+    stepTxB.setGasBudget(totalGas);
+    let txHash = null;
+
+    for (let historyDirection of stepTransactionsItem) {
+      let direction = null;
+      console.log(historyDirection[2]);
+
+      switch (historyDirection[2]) {
+        case 'left':
+          console.log('Processing move: left');
+          direction = (await dubhe.tx.direction.new_west({
+            tx: stepTxB,
+            isRaw: true,
+          })) as TransactionResult;
+          break;
+        case 'top':
+          console.log('Processing move: top');
+          direction = (await dubhe.tx.direction.new_north({
+            tx: stepTxB,
+            isRaw: true,
+          })) as TransactionResult;
+          break;
+        case 'right':
+          console.log('Processing move: right');
+          direction = (await dubhe.tx.direction.new_east({
+            tx: stepTxB,
+            isRaw: true,
+          })) as TransactionResult;
+          break;
+        case 'bottom':
+          console.log('Processing move: bottom');
+          direction = (await dubhe.tx.direction.new_south({
+            tx: stepTxB,
+            isRaw: true,
+          })) as TransactionResult;
+          break;
+        default:
+          break;
       }
 
-      // Add gas usage logging
-      console.log(`Estimated Gas Budget: ${totalGas}, Number of Operations: ${stepTransactionsItem.length}`);
+      await dubhe.tx.map_system.move_position({
+        tx: stepTxB,
+        params: [schemaObject, randomObject, direction],
+        onSuccess: async result => {
+          txHash = result.digest;
+          console.log('Transaction successful, digest:', result.digest);
 
-      let txHash = null;
-      await signAndExecuteTransaction(
-        {
-          transaction: stepTxB.serialize(),
-          chain: `sui:${NETWORK}`,
+          setTimeout(async () => {
+            toast('Transaction Successful', {
+              description: `${new Date().toUTCString()} - Gas Budget: ${totalGas}`,
+              action: {
+                label: 'Check in Explorer',
+                onClick: () => window.open(dubhe.getTxExplorerUrl(result.digest), '_blank'),
+              },
+            });
+          }, 2000);
         },
-        {
-          onSuccess: async result => {
-            txHash = result.digest;
-            console.log('Transaction successful, digest:', result.digest);
-
-            setTimeout(async () => {
-              toast('Transaction Successful', {
-                description: `${new Date().toUTCString()} - Gas Budget: ${totalGas}`,
-                action: {
-                  label: 'Check in Explorer',
-                  onClick: () => window.open(dubhe.getTxExplorerUrl(result.digest), '_blank'),
-                },
-              });
-            }, 2000);
-          },
-          onError: error => {
-            console.error('Transaction failed:', error);
-            toast.error(`Transaction failed. Gas budget might be insufficient (${totalGas})`);
-          },
+        onError: error => {
+          console.error('Transaction failed:', error);
+          toast.error(`Transaction failed. Gas budget might be insufficient (${totalGas})`);
         },
-      );
-      return txHash;
+      });
     }
+    return txHash;
   };
 
   // check if moving-block will be out of map
@@ -423,7 +369,7 @@ export default function Map() {
     } else if (direction === 'top') {
       return heroPosition.top - stepLength < 0;
     } else if (direction === 'bottom') {
-      return heroPosition.top + 2 * stepLength > stepLength * mapData.map.length;
+      return heroPosition.top + 2 * stepLength > stepLength * height;
     }
   };
 
@@ -440,27 +386,15 @@ export default function Map() {
   // scroll map when part of moving-block is out of wrapper
   const scrollIfNeeded = (direction: string) => {
     const scrollLength = parseInt((mapContainerRef.current.clientHeight / 3).toString());
-    console.log(`${direction}`);
-    console.log(`scroll ${scrollLength}`);
-    console.log(
-      `bottom ${heroRef.current.getBoundingClientRect().bottom} ${
-        mapContainerRef.current.getBoundingClientRect().bottom
-      }`,
-    );
-    console.log(
-      `top ${heroRef.current.getBoundingClientRect().top} ${mapContainerRef.current.getBoundingClientRect().top}`,
-    );
     if (
       direction === 'bottom' &&
       heroRef.current.getBoundingClientRect().bottom > mapContainerRef.current.getBoundingClientRect().bottom
     ) {
-      console.log('-------- bottom');
       scrollSmoothly(scrollLength, 1);
     } else if (
       direction === 'top' &&
       heroRef.current.getBoundingClientRect().top < mapContainerRef.current.getBoundingClientRect().top
     ) {
-      console.log('-------- top');
       scrollSmoothly(-scrollLength, -1);
     }
   };
@@ -484,8 +418,8 @@ export default function Map() {
     } else if (direction === 'bottom') {
       x += 1;
     }
-    // FIXME: if !unwalkable => walkable?
-    return !withinRange(mapData.map[x][y], mapData.ele_description.walkable);
+    console.log(terrain[x][y]);
+    return !withinRange(terrain[x][y], ele_description.walkable);
   };
 
   // const onInteract = async (npcX: number, npcY: number) => {
@@ -548,66 +482,6 @@ export default function Map() {
         break;
     }
   };
-
-  const interactPVP = () => {
-    showPVPModalLog({
-      text: 'Have monster',
-      btn: {
-        yes: 'Throw',
-        no: 'Run',
-      },
-    });
-  };
-  const showPVPModalLog = (dialogContent: any) => {
-    setSendTxLog({
-      display: true,
-      content: dialogContent.text,
-      yesContent: dialogContent.btn.yes,
-      noContent: dialogContent.btn.no,
-    });
-  };
-
-  const showNpcDialog = (dialogContent: any) => {
-    setDialog({
-      display: true,
-      content: dialogContent.text,
-      yesContent: dialogContent.btn.yes,
-      noContent: dialogContent.btn.no,
-    });
-  };
-
-  const openTreasureBox = targetPosition => {
-    let key = `${targetPosition.x}-${targetPosition.y}`;
-    let _unboxState = { ...unboxState };
-    _unboxState[key] = true;
-    setUnboxState(_unboxState);
-    // FIXME: use data to change element
-    const treasureBox = document.querySelectorAll('.map-row')[targetPosition.x].children.item(targetPosition.y);
-
-    treasureBox.className = treasureBox.className.replace('treasure-locked', 'treasure-unlocked');
-    treasureBox.children[0]['src'] = require('../assets/img/block/treasure-unlocked-1.png');
-  };
-
-  // const getInteractResponse = async () => {
-  //   const { x, y } = targetPosition;
-
-  //   // let interactApi = `https://indexer.obelisk.build?x=${y}&y=${x}&block_height=${blockNumber}`;
-
-  //   // let interactResponse = await axios
-  //   //   .get(interactApi)
-  //   //   .catch((err) => {
-  //   //     console.log(err);
-  //   //   });
-
-  //   // return interactResponse.data;
-  //   return {
-  //     text: 'hello, obelisk!',
-  //     btn: {
-  //       yes: 'yes',
-  //       no: 'no',
-  //     },
-  //   };
-  // };
 
   const getOldManResponse = async () => {
     const { x, y } = targetPosition;
@@ -698,21 +572,31 @@ export default function Map() {
       document.removeEventListener('keydown', onKeyDown);
       document.removeEventListener('keyup', onKeyUp);
     };
-  }, [mapData, heroPosition, stepTransactions, hero]);
+  }, [heroPosition, stepTransactions, hero]);
 
   return (
     <>
       <div id="map-wrapper">
-        {mapData.map && (
+        {terrain && (
           <div style={{ textAlign: 'center' }}>
-            Player position: ({heroPosition.left / stepLength}, {heroPosition.top / stepLength})
+            <div className="flex justify-between items-center px-4 py-2">
+              <div>
+                Player position: ({heroPosition.left / stepLength}, {heroPosition.top / stepLength})
+              </div>
+              <button
+                className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg shadow-md transition-colors duration-200"
+                onClick={() => savingGameWorld()}
+              >
+                Save
+              </button>
+            </div>
           </div>
         )}
-        <div id="original-map" hidden={mapData.map.length !== 0}>
+        <div id="original-map" hidden={height !== 0}>
           {Array.from(Array(rowNumber).keys()).map((row, rowId) => {
             return (
               <div className="original-map-row flex" key={rowId}>
-                {Array.from(Array(mapData.map[0].length).keys()).map((n, i) => {
+                {Array.from(Array(width).keys()).map((n, i) => {
                   return <div className="original-map-block flex" key={i}></div>;
                 })}
               </div>
@@ -722,7 +606,7 @@ export default function Map() {
         <div id="map-container" ref={mapContainerRef}>
           <div
             id="moving-block"
-            hidden={mapData.map.length === 0}
+            hidden={height === 0}
             ref={heroRef}
             style={{ left: `${heroPosition.left}vw`, top: `${heroPosition.top}vw` }}
           >
@@ -731,7 +615,7 @@ export default function Map() {
               <img src={heroImg} alt="" />
             </div>
           </div>
-          {allPlayers.map(
+          {players?.map(
             player =>
               player.address !== hero.name && (
                 <div
@@ -750,12 +634,12 @@ export default function Map() {
               ),
           )}
           <div id="map">
-            {mapData.map &&
-              mapData.map.map((row: any, rowId: any) => {
+            {terrain &&
+              terrain.map((row: any, rowId: any) => {
                 return (
                   <div className="map-row flex" key={rowId}>
-                    {Array.from(Array(mapData.map[0].length).keys()).map((n, j) => {
-                      return drawBlock(mapData.map, rowId, j, mapData.type, mapData.ele_description, j);
+                    {Array.from(Array(width).keys()).map((n, j) => {
+                      return drawBlock(terrain, rowId, j, type, ele_description, j);
                     })}
                   </div>
                 );
@@ -763,19 +647,9 @@ export default function Map() {
           </div>
         </div>
       </div>
-      <div className="form-control flex" id="save">
-        <button className="btn btn-primary btn-outline mx-5 my-5" id="button" onClick={() => savingGameWorld()}>
-          Save
-        </button>
-      </div>
       <div className="mx-2 my-2 bg-white text-black" id="save">
         {stepTransactions.map((value: any, index: any) => (
-          <>
-            <div>
-              {/* {`(${value[0]}, ${value[1]}) ${value[2]}`} */}
-              {`${value[2]}`}
-            </div>
-          </>
+          <div key={index}>{`${value[2]}`}</div>
         ))}
       </div>
       {/* <audio preload="auto" autoPlay loop>
