@@ -16,7 +16,6 @@ code {
     monospace;
 } */
 
-
 @import url('https://fonts.googleapis.com/css2?family=ZCOOL+XiaoWei&display=swap');
 
 * {
@@ -263,7 +262,7 @@ progress {
   align-items: center;
 }
 
-[class^="dialog-action-"] {
+[class^='dialog-action-'] {
   flex: 1;
   border: 1px solid;
   padding: 0.4em 0.4em;
@@ -272,7 +271,6 @@ progress {
 }
 
 #character-nft .dropdown-option {
-
 }
 
 #character-nft .character-avatar {
@@ -310,7 +308,6 @@ progress {
   overflow: hidden;
 }
 
-
 .pvp-modal {
   position: absolute;
   top: 50%;
@@ -340,7 +337,6 @@ progress {
   object-fit: contain;
 }
 
-
 .pvp-modal-content p {
   height: auto;
   display: flex;
@@ -369,8 +365,7 @@ progress {
   align-items: center;
 }
 
-
-[class^="pvp-modal-action-"] {
+[class^='pvp-modal-action-'] {
   flex: 1;
   border: 1px solid;
   padding: 0.4em 0.4em;
