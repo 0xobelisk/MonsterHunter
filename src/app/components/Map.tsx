@@ -228,7 +228,7 @@ export function Map({ width, height, terrain, players, type, ele_description, ev
       ele_description.tussock,
     );
 
-    if (isTussock || stepTransactionsItem.length === 1) {
+    if (isTussock || stepTransactionsItem.length === 100) {
       const txHash = await savingGameWorld(isTussock);
 
       if (isTussock) {
@@ -282,7 +282,7 @@ export function Map({ width, height, terrain, players, type, ele_description, ev
 
     const stepTxB = new Transaction();
     let schemaObject = stepTxB.object(SCHEMA_ID);
-    let randomObject = stepTxB.object.random();
+    let clockObject = stepTxB.object.clock();
 
     // Calculate dynamic gas budget
     // Base gas budget
@@ -335,27 +335,32 @@ export function Map({ width, height, terrain, players, type, ele_description, ev
 
       await dubhe.tx.map_system.move_position({
         tx: stepTxB,
-        params: [schemaObject, randomObject, direction],
-        onSuccess: async result => {
-          txHash = result.digest;
-          console.log('Transaction successful, digest:', result.digest);
-
-          setTimeout(async () => {
-            toast('Transaction Successful', {
-              description: `${new Date().toUTCString()} - Gas Budget: ${totalGas}`,
-              action: {
-                label: 'Check in Explorer',
-                onClick: () => window.open(dubhe.getTxExplorerUrl(result.digest), '_blank'),
-              },
-            });
-          }, 2000);
-        },
-        onError: error => {
-          console.error('Transaction failed:', error);
-          toast.error(`Transaction failed. Gas budget might be insufficient (${totalGas})`);
-        },
+        params: [schemaObject, clockObject, direction],
+        isRaw: true,
       });
     }
+
+    await dubhe.signAndSendTxn({
+      tx: stepTxB,
+      onSuccess: async result => {
+        txHash = result.digest;
+        console.log('Transaction successful, digest:', result.digest);
+
+        setTimeout(async () => {
+          toast('Transaction Successful', {
+            description: `${new Date().toUTCString()} - Gas Budget: ${totalGas}`,
+            action: {
+              label: 'Check in Explorer',
+              onClick: () => window.open(dubhe.getTxExplorerUrl(result.digest), '_blank'),
+            },
+          });
+        }, 2000);
+      },
+      onError: error => {
+        console.error('Transaction failed:', error);
+        toast.error(`Transaction failed. Gas budget might be insufficient (${totalGas})`);
+      },
+    });
     return txHash;
   };
 
@@ -419,7 +424,11 @@ export function Map({ width, height, terrain, players, type, ele_description, ev
     } else if (direction === 'bottom') {
       x += 1;
     }
-    console.log(terrain[x][y]);
+
+    if (x < 0 || x >= terrain.length || y < 0 || y >= terrain[0].length) {
+      return true;
+    }
+
     return !withinRange(terrain[x][y], ele_description.walkable);
   };
 
