@@ -1,5 +1,6 @@
 #[allow(lint(public_random))]
 module monster_hunter::map_system;
+use sui::clock::Clock;
 use sui::random::{RandomGenerator, Random};
 use monster_hunter::schema::Schema;
 use sui::bcs;
@@ -30,8 +31,9 @@ public fun register(schema: &mut Schema,  x: u64, y: u64, ctx: &mut TxContext) {
 }
 
 
-fun start_encounter(schema: &mut Schema, generator: &mut RandomGenerator, player: address) {
-    let monster = random::generate_u256(generator);
+fun start_encounter(schema: &mut Schema, clock: &Clock, player: address) {
+    // let monster = random::generate_u256(generator);
+    let monster = sui::clock::timestamp_ms(clock) as u256;
     let mut monster_type = monster_type::new_none();
     if (monster % 4 == 1) {
         monster_type = monster_type::new_eagle();
@@ -49,7 +51,7 @@ fun start_encounter(schema: &mut Schema, generator: &mut RandomGenerator, player
     schema.monster_info().set(player, monster_info);
 }
 
-public fun move_position(schema: &mut Schema, random: &Random, direction: Direction, ctx: &mut TxContext) {
+public fun move_position(schema: &mut Schema, clock: &Clock, direction: Direction, ctx: &mut TxContext) {
     let player = ctx.sender();
     not_registered_error(schema.moveable().contains(player));
     cannot_move_error(schema.moveable()[player]);
@@ -77,12 +79,13 @@ public fun move_position(schema: &mut Schema, random: &Random, direction: Direct
 
     schema.position().set(player, position::new(x, y));
 
-    let mut generator = random::new_generator(random, ctx);
-    let rand = random::generate_u128(&mut generator);
-    std::debug::print(&rand);
+    // let mut generator = random::new_generator(random, ctx);
+    // let rand = random::generate_u128(&mut generator);
+    // std::debug::print(&rand);
+    let rand = sui::clock::timestamp_ms(clock);
     if(schema.player().contains(player) && schema.encounter_trigger().contains(space_addr)) {
         if (rand % 2 == 0) {
-            start_encounter(schema, &mut generator, player);
+            start_encounter(schema, clock, player);
         }
     }
 }
