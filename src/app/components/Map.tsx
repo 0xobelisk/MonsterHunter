@@ -7,6 +7,8 @@ import { NETWORK, PACKAGE_ID, SCHEMA_ID } from '../../chain/config';
 import { TransactionResult } from '@0xobelisk/sui-client/src';
 import { toast } from 'sonner';
 import { PRIVATEKEY } from '../../chain/key';
+import Chat from './Chat';
+import { ChatCard } from './ChatCard';
 
 type Props = {
   width: number;
@@ -44,6 +46,8 @@ export function Map({ width, height, terrain, players, type, ele_description, ev
   const setDialog = useSetAtom(Dialog);
 
   const [stepTransactions, setStepTransactions] = useState<any[][]>([]);
+
+  const [isChatVisible, setIsChatVisible] = useState(false);
 
   // fill screen with rows of block
   const calcOriginalMapRowNumber = function (height: any, width: any) {
@@ -140,12 +144,9 @@ export function Map({ width, height, terrain, players, type, ele_description, ev
       ) : (
         ''
       );
-    console.log(map[x][y]);
     if (withinRange(map[x][y], ele_description.green)) {
       className = 'walkable green';
     } else if (withinRange(map[x][y], ele_description.old_man)) {
-      console.log(map[x][y]);
-      console.log(map[x][y]);
       className = `unwalkable oldman-img npc_man`;
     } else if (withinRange(map[x][y], ele_description.small_tree)) {
       className = 'unwalkable small-tree-img';
@@ -492,9 +493,9 @@ export function Map({ width, height, terrain, players, type, ele_description, ev
   // };
 
   const interactOldManNpc = async () => {
-    const interactResponse = await getOldManResponse();
-    const dialogContent = interactResponse;
-    showNpcDialog(dialogContent);
+    // const interactResponse = await getOldManResponse();
+    // showNpcDialog(interactResponse);
+    setIsChatVisible(true);
   };
 
   const onInteract = async (npcX: number, npcY: number) => {
@@ -526,6 +527,7 @@ export function Map({ width, height, terrain, players, type, ele_description, ev
     }
 
     const currentPosition = getCoordinate(stepLength);
+
     switch (direction) {
       case 'left':
         targetPosition = {
@@ -552,7 +554,20 @@ export function Map({ width, height, terrain, players, type, ele_description, ev
         };
         break;
       default:
-        break;
+        return;
+    }
+
+    if (
+      targetPosition.x < 0 ||
+      targetPosition.x >= terrain.length ||
+      targetPosition.y < 0 ||
+      targetPosition.y >= terrain[0].length
+    ) {
+      return;
+    }
+    const targetBlock = terrain[targetPosition.x][targetPosition.y];
+    if (withinRange(targetBlock, ele_description.old_man)) {
+      await interactOldManNpc();
     }
   };
 
@@ -570,7 +585,6 @@ export function Map({ width, height, terrain, players, type, ele_description, ev
 
   useEffect(() => {
     const onKeyDown = async (ev: any) => {
-      // var ev = ev || event;
       var keyCode = ev.keyCode;
       switch (keyCode) {
         case 37:
@@ -597,9 +611,11 @@ export function Map({ width, height, terrain, players, type, ele_description, ev
           setHeroImg(playerSprites['S']);
           await move(direction, stepLength);
           break;
-        case 32:
-          ev.preventDefault();
-          await interact(direction);
+        case 67: // C键
+          if (!isChatVisible) {
+            ev.preventDefault();
+            await interact(direction);
+          }
           break;
         case 33: // PageUp
         case 34: // PageDown
@@ -610,7 +626,6 @@ export function Map({ width, height, terrain, players, type, ele_description, ev
     };
 
     const onKeyUp = (ev: any) => {
-      // var ev = ev || event;
       var keyCode = ev.keyCode;
 
       switch (keyCode) {
@@ -630,7 +645,7 @@ export function Map({ width, height, terrain, players, type, ele_description, ev
           ev.preventDefault();
           direction = 'bottom';
           break;
-        case 32:
+        case 67: // C键
           ev.preventDefault();
           break;
         default:
@@ -720,14 +735,7 @@ export function Map({ width, height, terrain, players, type, ele_description, ev
           </div>
         </div>
       </div>
-      <div className="mx-2 my-2 bg-white text-black" id="save">
-        {stepTransactions.map((value: any, index: any) => (
-          <div key={index}>{`${value[2]}`}</div>
-        ))}
-      </div>
-      {/* <audio preload="auto" autoPlay loop>
-        <source src="/assets/music/home.mp3" type="audio/mpeg" />
-      </audio> */}
+      <ChatCard isVisible={isChatVisible} onClose={() => setIsChatVisible(false)} />
     </>
   );
 }

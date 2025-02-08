@@ -8,7 +8,7 @@
             let  b = monster_hunter::terrain_type::new_boulder();
             let  n = monster_hunter::terrain_type::new_npc();
 			let terrains = vector[
-                vector [o, n, o, o, o, o, t, o, o, o, o, o, o, o, o],
+                vector [o, o, o, o, o, o, t, o, o, o, o, o, o, o, o],
                 vector [o, o, t, o, o, o, o, o, t, o, o, o, o, b, o],
                 vector [o, t, t, t, t, o, o, o, o, o, o, o, o, o, o],
                 vector [o, o, t, t, t, t, o, o, o, o, b, o, o, o, o],

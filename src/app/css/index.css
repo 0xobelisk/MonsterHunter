@@ -229,9 +229,36 @@ progress {
 }
 
 .dialog-content {
-  border: 1px solid;
-  padding: 1.2em 0.9em;
-  font-size: 1.1em;
+  position: relative;
+  padding: 1.2em 1.4em;
+  margin: 0.5em 0;
+  line-height: 1.5;
+  border-radius: 0.8rem;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.dialog-content::before {
+  content: '';
+  position: absolute;
+  width: 0;
+  height: 0;
+  border: 8px solid transparent;
+}
+
+/* 用户消息的尖角 */
+.bg-primary.dialog-content::before {
+  right: -16px;
+  top: 50%;
+  transform: translateY(-50%);
+  border-left-color: hsl(var(--primary));
+}
+
+/* NPC消息的尖角 */
+.bg-muted.dialog-content::before {
+  left: -16px;
+  top: 50%;
+  transform: translateY(-50%);
+  border-right-color: hsl(var(--muted));
 }
 
 .dialog-content p {
@@ -402,4 +429,80 @@ progress {
 
 .other-player .xiaozhi img {
   filter: hue-rotate(180deg);
+}
+
+.chat-card-enter {
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+.chat-card-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 200ms, transform 200ms;
+}
+
+.chat-card-exit {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.chat-card-exit-active {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 200ms, transform 200ms;
+}
+
+.chat-card {
+  position: fixed;
+  right: 2rem;
+  bottom: 2rem;
+  width: 600px;
+  height: 700px;
+  background: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  z-index: 1000;
+  border: 1px solid #e5e7eb;
+}
+
+.chat-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.chat-card-title {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.chat-card-close {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0;
+  color: #666;
+}
+
+.chat-card-close:hover {
+  color: #000;
+}
+
+.chat-card-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.5rem;
+  background-color: #f9fafb;
+}
+
+.space-y-4 > * + * {
+  margin-top: 1.5rem;
 }
