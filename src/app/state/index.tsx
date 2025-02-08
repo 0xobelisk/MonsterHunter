@@ -5,7 +5,8 @@ export type TerrainItemType = {
   None?: {};
   TallGrass?: {};
   Boulder?: {};
-  // $kind: 'None' | 'TallGrass' | 'Boulder';
+  Npc?: {};
+  // $kind: 'None' | 'TallGrass' | 'Boulder' | 'Npc';
 };
 
 export type MapDataType = {
@@ -91,6 +92,16 @@ const MapData = atom<MapDataType>({
       {
         Boulder: {},
         // $kind: 'Boulder',
+      },
+    ],
+    old_man: [
+      {
+        Npc: {},
+      },
+    ],
+    sprite: [
+      {
+        Npc: {},
       },
     ],
   },

@@ -1,8 +1,8 @@
 import { Dubhe, Transaction } from '@0xobelisk/sui-client';
 import { useEffect, useState, useRef, useMemo, ReactElement } from 'react';
 
-import { useAtom, useAtomValue } from 'jotai';
-import { ContractMetadata, Hero, TerrainItemType } from '../state';
+import { useAtom, useAtomValue, useSetAtom } from 'jotai';
+import { ContractMetadata, Dialog, Hero, TerrainItemType } from '../state';
 import { NETWORK, PACKAGE_ID, SCHEMA_ID } from '../../chain/config';
 import { TransactionResult } from '@0xobelisk/sui-client/src';
 import { toast } from 'sonner';
@@ -41,6 +41,7 @@ export function Map({ width, height, terrain, players, type, ele_description, ev
   let [rowNumber, setRowNumber] = useState(1);
   const contractMetadata = useAtomValue(ContractMetadata);
   const [hero, setHero] = useAtom(Hero);
+  const setDialog = useSetAtom(Dialog);
 
   const [stepTransactions, setStepTransactions] = useState<any[][]>([]);
 
@@ -95,7 +96,30 @@ export function Map({ width, height, terrain, players, type, ele_description, ev
     return eventsDict;
   };
 
-  // let randomState1 = useMemo(() => initialRandomState(), [mapData]);
+  const initialRandomState = () => {
+    const spriteCount = 5;
+
+    if (terrain.length === 0) {
+      return {};
+    }
+    let randomState = {};
+    // console.log(mapData.map[0]);
+    for (let i = 0; i < terrain.length; i++) {
+      for (let j = 0; j < 32; j++) {
+        let key = `${i}-${j}`;
+        randomState[key] = Math.floor(Math.random() * 10 + 1);
+        if (ele_description.object !== undefined && withinRange(terrain[i][j], ele_description.object)) {
+          randomState[key] = Math.floor(Math.random() * 10 + 1);
+        } else if (withinRange(terrain[i][j], ele_description.sprite)) {
+          randomState[key] = Math.floor(Math.random() * 10 + 1);
+        }
+      }
+    }
+    // setRandomState(randomState);
+    return randomState;
+  };
+
+  let randomState1 = useMemo(() => initialRandomState(), []);
   let eventsState = useMemo(() => initialEvents(), [events]);
 
   const setBlockType = (
@@ -116,39 +140,44 @@ export function Map({ width, height, terrain, players, type, ele_description, ev
       ) : (
         ''
       );
-
+    console.log(map[x][y]);
     if (withinRange(map[x][y], ele_description.green)) {
       className = 'walkable green';
+    } else if (withinRange(map[x][y], ele_description.old_man)) {
+      console.log(map[x][y]);
+      console.log(map[x][y]);
+      className = `unwalkable oldman-img npc_man`;
     } else if (withinRange(map[x][y], ele_description.small_tree)) {
       className = 'unwalkable small-tree-img';
     } else if (withinRange(map[x][y], ele_description.tussock)) {
       className = 'walkable tussock';
-      // } else if (ele_description.object !== undefined && withinRange(map[x][y], ele_description.object)) {
-      //   let lockState = unboxState[`${x}-${y}`] === true ? 'unlocked' : 'locked';
-      //   let randomStateKey = randomState1[`${x}-${y}`];
-      //   const object = `treasure-${lockState}-${randomStateKey}`;
-      //   className = `unwalkable ${object}`;
-      //   img = (
-      //     <img
-      //       src={require(`../assets/img/block/${object}.png`)}
-      //       alt={object}
-      //       onClick={() => onInteract(x, y)}
-      //       style={{ cursor: ifInRange(x, y) ? 'pointer' : '' }}
-      //     />
-      //   );
-      // } else if (withinRange(map[x][y], ele_description.sprite)) {
-      //   const sprite = 'sprite' + randomState1[`${x}-${y}`];
-      //   className = `unwalkable ${sprite}`;
-      //   const ncp_image = mapData.map_type == 'gallery' ? 'gallery_house' : sprite;
-      //   img = (
-      //     <img
-      //       src={require(`../assets/img/block/${ncp_image}.png`)}
-      //       alt={ncp_image}
-      //       onClick={() => onInteract(x, y)}
-      //       style={{ cursor: ifInRange(x, y) ? 'pointer' : '' }}
-      //     />
-      //   );
     }
+    // } else if (ele_description.object !== undefined && withinRange(map[x][y], ele_description.object)) {
+    //   let lockState = unboxState[`${x}-${y}`] === true ? 'unlocked' : 'locked';
+    //   let randomStateKey = randomState1[`${x}-${y}`];
+    //   const object = `treasure-${lockState}-${randomStateKey}`;
+    //   className = `unwalkable ${object}`;
+    //   img = (
+    //     <img
+    //       src={require(`../assets/img/block/${object}.png`)}
+    //       alt={object}
+    //       onClick={() => onInteract(x, y)}
+    //       style={{ cursor: ifInRange(x, y) ? 'pointer' : '' }}
+    //     />
+    //   );
+    // } else if (withinRange(map[x][y], ele_description.sprite)) {
+    //   const sprite = 'sprite' + randomState1[`${x}-${y}`];
+    //   className = `unwalkable ${sprite}`;
+    //   const ncp_image = map_type == 'gallery' ? 'gallery_house' : sprite;
+    //   img = (
+    //     <img
+    //       src={require(`../assets/img/block/${ncp_image}.png`)}
+    //       alt={ncp_image}
+    //       onClick={() => onInteract(x, y)}
+    //       style={{ cursor: ifInRange(x, y) ? 'pointer' : '' }}
+    //     />
+    //   );
+    // }
     return (
       <div className={`map-block flex ${className} ${blockType}`} key={key}>
         {title}
@@ -163,6 +192,17 @@ export function Map({ width, height, terrain, players, type, ele_description, ev
       blockType = type;
     }
     return setBlockType(map, i, j, ele_description, blockType, key);
+  };
+
+  const ifInRange = (npcX: number, npcY: number) => {
+    const currentPosition = getCoordinate(stepLength);
+    if (
+      (currentPosition.x === npcX && (currentPosition.y - npcY == 1 || currentPosition.y - npcY == -1)) ||
+      (currentPosition.y === npcY && (currentPosition.x - npcX == 1 || currentPosition.x - npcX == -1))
+    ) {
+      return true;
+    }
+    return false;
   };
 
   useEffect(() => {
@@ -432,30 +472,53 @@ export function Map({ width, height, terrain, players, type, ele_description, ev
     return !withinRange(terrain[x][y], ele_description.walkable);
   };
 
-  // const onInteract = async (npcX: number, npcY: number) => {
-  //   const currentPosition = getCoordinate(stepLength);
-  //   // check if npc is in range
-  //   if (
-  //     (currentPosition.x === npcX && (currentPosition.y - npcY == 1 || currentPosition.y - npcY == -1)) ||
-  //     (currentPosition.y === npcY && (currentPosition.x - npcX == 1 || currentPosition.x - npcX == -1))
-  //   ) {
-  //     // await interactNpc({x: npcX, y: npcY});
-  //     const targetBlock = mapData.map[npcX][npcY];
-  //     console.log(targetBlock);
-  //     if (withinRange(targetBlock, mapData.ele_description.sprite)) {
-  //       // await interactNpc({x: npcX, y: npcY});
-  //       await interactNpc();
-  //     } else if (withinRange(targetBlock, mapData.ele_description.object)) {
-  //       openTreasureBox({ x: npcX, y: npcY });
-  //       // } else if (withinRange(targetBlock, mapData.ele_description.obelisk_bottom)) {
-  //       //   openTreasureBox({ x: npcX, y: npcY });
-  //       // } else if (withinRange(targetBlock, mapData.ele_description.old_man)) {
-  //       //   openTreasureBox({ x: npcX, y: npcY });
-  //       // } else if (withinRange(targetBlock, mapData.ele_description.fat_man)) {
-  //       //   openTreasureBox({ x: npcX, y: npcY });
-  //     }
-  //   }
+  const showNpcDialog = (dialogContent: any) => {
+    setDialog({
+      display: true,
+      content: dialogContent.text,
+      yesContent: dialogContent.btn.yes,
+      noContent: dialogContent.btn.no,
+    });
+  };
+
+  // const interactNpc = async () => {
+  //   const interactResponse = await getInteractResponse();
+  //   console.log(interactResponse);
+  //   // if (interactResponse.error_code === 0) {
+  //   // const dialogContent = interactResponse.result.event.payload.first;
+  //   const dialogContent = interactResponse;
+  //   showNpcDialog(dialogContent);
+  //   // }
   // };
+
+  const interactOldManNpc = async () => {
+    const interactResponse = await getOldManResponse();
+    const dialogContent = interactResponse;
+    showNpcDialog(dialogContent);
+  };
+
+  const onInteract = async (npcX: number, npcY: number) => {
+    const currentPosition = getCoordinate(stepLength);
+    // check if npc is in range
+    if (
+      (currentPosition.x === npcX && (currentPosition.y - npcY == 1 || currentPosition.y - npcY == -1)) ||
+      (currentPosition.y === npcY && (currentPosition.x - npcX == 1 || currentPosition.x - npcX == -1))
+    ) {
+      // await interactNpc({x: npcX, y: npcY});
+      const targetBlock = terrain[npcX][npcY];
+      console.log(targetBlock);
+      if (withinRange(targetBlock, ele_description.sprite)) {
+        // await interactNpc({x: npcX, y: npcY});
+        await interactOldManNpc();
+        // } else if (withinRange(targetBlock, mapData.ele_description.obelisk_bottom)) {
+        //   openTreasureBox({ x: npcX, y: npcY });
+        // } else if (withinRange(targetBlock, mapData.ele_description.old_man)) {
+        //   openTreasureBox({ x: npcX, y: npcY });
+        // } else if (withinRange(targetBlock, mapData.ele_description.fat_man)) {
+        //   openTreasureBox({ x: npcX, y: npcY });
+      }
+    }
+  };
 
   const interact = async (direction: string) => {
     if (!direction) {

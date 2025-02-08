@@ -6,7 +6,7 @@ export const dubheConfig = {
   data: {
     MonsterType: ['None', 'Eagle', 'Rat', 'Caterpillar'],
     Direction: ['North', 'East', 'South', 'West'],
-    TerrainType: ['None', 'TallGrass', 'Boulder'],
+    TerrainType: ['None', 'TallGrass', 'Boulder', 'Npc'],
     MonsterCatchResult: ['Missed', 'Caught', 'Fled'],
     MapConfig: { width: 'u64', height: 'u64', terrain: 'vector<vector<TerrainType>>' },
     Position: { x: 'u64', y: 'u64' },

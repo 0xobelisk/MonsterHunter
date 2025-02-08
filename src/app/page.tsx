@@ -269,8 +269,8 @@ export default function Home() {
       if (mapConfig && mapConfig.value) {
         setMapData({
           ...mapData,
-          width: mapConfig.value.terrain.length ?? 0,
-          height: mapConfig.value.terrain[0].length ?? 0,
+          width: mapConfig.value.terrain[0].length ?? 0,
+          height: mapConfig.value.terrain.length ?? 0,
           terrain: mapConfig.value.terrain ?? [],
           type: 'green',
           events: [],

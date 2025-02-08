@@ -6,13 +6,14 @@
 			let  o = monster_hunter::terrain_type::new_none();
             let  t = monster_hunter::terrain_type::new_tall_grass();
             let  b = monster_hunter::terrain_type::new_boulder();
+            let  n = monster_hunter::terrain_type::new_npc();
 			let terrains = vector[
-                vector [o, o, o, o, o, o, t, o, o, o, o, o, o, o, o],
+                vector [o, n, o, o, o, o, t, o, o, o, o, o, o, o, o],
                 vector [o, o, t, o, o, o, o, o, t, o, o, o, o, b, o],
                 vector [o, t, t, t, t, o, o, o, o, o, o, o, o, o, o],
                 vector [o, o, t, t, t, t, o, o, o, o, b, o, o, o, o],
                 vector [o, o, o, o, t, t, o, o, o, o, o, o, o, o, o],
-                vector [o, o, o, b, b, o, o, o, o, o, o, o, o, o, o],
+                vector [o, o, o, b, b, o, o, o, o, o, o, o, o, o, n],
                 vector [o, t, o, o, o, b, b, o, o, o, o, t, o, o, o],
                 vector [o, o, t, t, o, o, o, o, o, t, o, b, o, o, t],
                 vector [o, o, t, o, o, o, o, t, t, t, o, b, b, o, o],
@@ -37,10 +38,13 @@
                 if (terrain == monster_hunter::terrain_type::new_boulder()) {
                     schema.position().set(entity_key, position);
                     schema.obstruction().set(entity_key, true);
+                } else if (terrain == monster_hunter::terrain_type::new_npc()) {
+                    schema.position().set(entity_key, position);
+                    schema.obstruction().set(entity_key, true);
                 } else if (terrain == monster_hunter::terrain_type::new_tall_grass()) {
                     schema.position().set(entity_key, position);
                     schema.encounter_trigger().set(entity_key, true);
-                }
+                } 
             });
         });
   }

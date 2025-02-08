@@ -7,7 +7,7 @@
   module monster_hunter::terrain_type {
 
   public enum TerrainType has copy, drop , store {
-                                Boulder,None,TallGrass
+                                Boulder,None,Npc,TallGrass
                         }
 
   public fun new_boulder(): TerrainType {
@@ -16,6 +16,10 @@
 
   public fun new_none(): TerrainType {
     TerrainType::None
+  }
+
+  public fun new_npc(): TerrainType {
+    TerrainType::Npc
   }
 
   public fun new_tall_grass(): TerrainType {
