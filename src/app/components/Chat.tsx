@@ -4,12 +4,18 @@ import type { TextResponse } from '../api';
 import { useSendMessageMutation } from '../api';
 import { ImageIcon } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import { useGetAgentsQuery } from '../api';
 // import { useParams } from 'next/navigation';
 import '../App.css';
 
 export default function Chat() {
+  const { data: agents, isLoading } = useGetAgentsQuery();
+  console.log('agents', agents);
+
+  const agentId = agents?.[0]?.id;
+  console.log('agentId', agentId);
   //   const { agentId } = useParams();
-  const agentId = 'f446f629-9a0e-0010-921d-e60d300d5e63';
+  // const agentId = 'f446f629-9a0e-0010-921d-e60d300d5e63';
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<TextResponse[]>([]);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
