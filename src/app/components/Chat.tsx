@@ -95,7 +95,7 @@ export default function Chat() {
               </div>
             ))
           ) : (
-            <div className="text-center text-muted-foreground">开始与NPC对话吧！</div>
+            <div className="text-center text-muted-foreground">Start chatting with the NPC!</div>
           )}
           <div ref={messagesEndRef} />
         </div>

@@ -12,7 +12,7 @@ export function ChatCard({ isVisible, onClose }: ChatCardProps) {
   return (
     <div className="chat-card">
       <div className="chat-card-header">
-        <h3 className="chat-card-title">NPC对话</h3>
+        <h3 className="chat-card-title">NPC Chat</h3>
         <button onClick={onClose} className="chat-card-close">
           ×
         </button>

@@ -611,7 +611,7 @@ export function Map({ width, height, terrain, players, type, ele_description, ev
           setHeroImg(playerSprites['S']);
           await move(direction, stepLength);
           break;
-        case 67: // C键
+        case 187:
           if (!isChatVisible) {
             ev.preventDefault();
             await interact(direction);
@@ -645,7 +645,7 @@ export function Map({ width, height, terrain, players, type, ele_description, ev
           ev.preventDefault();
           direction = 'bottom';
           break;
-        case 67: // C键
+        case 187: // 等于号键
           ev.preventDefault();
           break;
         default:

@@ -23,7 +23,7 @@
     "indexer:sqlite": "pnpm sqlite-indexer --force-regenesis --network",
     "// Development Environment": "----------------",
     "dev": "pnpm dev:localnet",
-    "dev:localnet": "pnpm setup:localnet && pnpm next",
+    "dev:localnet": "pnpm setup:localnet && pnpm next dev -p 3002",
     "dev:testnet": "pnpm setup:testnet && pnpm next",
     "dev:mainnet": "pnpm setup:mainnet && pnpm next",
     "setup:localnet": "pnpm account:gen && pnpm faucet localnet && pnpm run deploy localnet && pnpm run config:store localnet && (pnpm run indexer:sqlite localnet &)",
