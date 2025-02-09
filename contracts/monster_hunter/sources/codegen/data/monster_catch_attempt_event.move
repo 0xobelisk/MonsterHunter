@@ -22,7 +22,7 @@
 
   use monster_hunter::position::Position;
 
-  use monster_hunter::monster_info::MonsterInfo;
+  use monster_hunter::encounter_info::EncounterInfo;
 
   public struct MonsterCatchAttemptEvent has copy, drop {
     player: address,

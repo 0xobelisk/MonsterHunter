@@ -28,16 +28,16 @@
 //         assert!(schema.position().get(ctx.sender()) == position::new(2, 2));
 //
 //         // Cannot move during an encounter
-//         let monster_info = schema.monster_info()[ctx.sender()];
-//         assert!(schema.monster_info().get(ctx.sender()).get_catch_attempts() == 0);
+//         let encounter_info = schema.encounter()[ctx.sender()];
+//         assert!(schema.encounter().get(ctx.sender()).get_catch_attempts() == 0);
 //         encounter_system::throw_ball(&mut schema, &random, ctx);
-//         assert!(schema.monster_info().get(ctx.sender()).get_catch_attempts() == 1);
+//         assert!(schema.encounter().get(ctx.sender()).get_catch_attempts() == 1);
 //         encounter_system::throw_ball(&mut schema, &random, ctx);
-//         assert!(schema.monster_info().get(ctx.sender()).get_catch_attempts() == 2);
+//         assert!(schema.encounter().get(ctx.sender()).get_catch_attempts() == 2);
 //         encounter_system::throw_ball(&mut schema, &random, ctx);
 //
-//         assert!(schema.monster_info().contains(ctx.sender()) == false);
-//         assert!(schema.monster().contains(monster_info.get_monster()) == false);
+//         assert!(schema.encounter().contains(ctx.sender()) == false);
+//         assert!(schema.monster().contains(encounter_info.get_monster()) == false);
 //
 //         map_system::move_position(&mut schema, &random, direction::new_east(), ctx);
 //         map_system::move_position(&mut schema, &random, direction::new_east(), ctx);
@@ -47,7 +47,7 @@
 //         let expect_monster_type = monster_hunter::monster_type::new_eagle();
 //         assert!(schema.monster().get(expect_monster_address) == expect_monster_type);
 //         assert!(schema.owned_by().get(expect_monster_address) == ctx.sender());
-//         assert!(schema.monster_info().contains(ctx.sender()) == false);
+//         assert!(schema.encounter().contains(ctx.sender()) == false);
 //
 //         test_scenario::return_shared(random);
 //         test_scenario::return_shared(schema);
@@ -72,12 +72,12 @@
 //         map_system::move_position(&mut schema, &random, direction::new_east(), ctx);
 //         map_system::move_position(&mut schema, &random, direction::new_south(), ctx);
 //
-//         let monster_info = schema.monster_info()[ctx.sender()];
+//         let encounter_info = schema.encounter()[ctx.sender()];
 //         // Cannot move during an encounter
 //         encounter_system::flee(&mut schema, ctx);
 //
-//         assert!(schema.monster_info().contains(ctx.sender()) == false);
-//         assert!(schema.monster().contains(monster_info.get_monster()) == false);
+//         assert!(schema.encounter().contains(ctx.sender()) == false);
+//         assert!(schema.monster().contains(encounter_info.get_monster()) == false);
 //
 //         test_scenario::return_shared(random);
 //         test_scenario::return_shared(schema);

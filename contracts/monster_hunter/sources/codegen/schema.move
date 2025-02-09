@@ -36,7 +36,7 @@
 
   use monster_hunter::position::Position;
 
-  use monster_hunter::monster_info::MonsterInfo;
+  use monster_hunter::encounter_info::EncounterInfo;
 
   public struct Schema has key, store {
     id: UID,
@@ -50,14 +50,6 @@
     storage::borrow_mut_field(&mut self.id, b"player")
   }
 
-  public fun borrow_encounterable(self: &Schema): &StorageMap<address, bool> {
-    storage::borrow_field(&self.id, b"encounterable")
-  }
-
-  public(package) fun encounterable(self: &mut Schema): &mut StorageMap<address, bool> {
-    storage::borrow_mut_field(&mut self.id, b"encounterable")
-  }
-
   public fun borrow_moveable(self: &Schema): &StorageMap<address, bool> {
     storage::borrow_field(&self.id, b"moveable")
   }
@@ -66,20 +58,20 @@
     storage::borrow_mut_field(&mut self.id, b"moveable")
   }
 
-  public fun borrow_obstruction(self: &Schema): &StorageMap<address, bool> {
+  public fun borrow_position(self: &Schema): &StorageMap<address, Position> {
+    storage::borrow_field(&self.id, b"position")
+  }
+
+  public(package) fun position(self: &mut Schema): &mut StorageMap<address, Position> {
+    storage::borrow_mut_field(&mut self.id, b"position")
+  }
+
+  public fun borrow_obstruction(self: &Schema): &StorageMap<Position, bool> {
     storage::borrow_field(&self.id, b"obstruction")
   }
 
-  public(package) fun obstruction(self: &mut Schema): &mut StorageMap<address, bool> {
+  public(package) fun obstruction(self: &mut Schema): &mut StorageMap<Position, bool> {
     storage::borrow_mut_field(&mut self.id, b"obstruction")
-  }
-
-  public fun borrow_encounter_trigger(self: &Schema): &StorageMap<address, bool> {
-    storage::borrow_field(&self.id, b"encounter_trigger")
-  }
-
-  public(package) fun encounter_trigger(self: &mut Schema): &mut StorageMap<address, bool> {
-    storage::borrow_mut_field(&mut self.id, b"encounter_trigger")
   }
 
   public fun borrow_monster(self: &Schema): &StorageMap<address, MonsterType> {
@@ -106,34 +98,42 @@
     storage::borrow_mut_field(&mut self.id, b"map_config")
   }
 
-  public fun borrow_position(self: &Schema): &StorageMap<address, Position> {
-    storage::borrow_field(&self.id, b"position")
+  public fun borrow_encounterable(self: &Schema): &StorageMap<address, bool> {
+    storage::borrow_field(&self.id, b"encounterable")
   }
 
-  public(package) fun position(self: &mut Schema): &mut StorageMap<address, Position> {
-    storage::borrow_mut_field(&mut self.id, b"position")
+  public(package) fun encounterable(self: &mut Schema): &mut StorageMap<address, bool> {
+    storage::borrow_mut_field(&mut self.id, b"encounterable")
   }
 
-  public fun borrow_monster_info(self: &Schema): &StorageMap<address, MonsterInfo> {
-    storage::borrow_field(&self.id, b"monster_info")
+  public fun borrow_encounter_trigger(self: &Schema): &StorageMap<Position, bool> {
+    storage::borrow_field(&self.id, b"encounter_trigger")
   }
 
-  public(package) fun monster_info(self: &mut Schema): &mut StorageMap<address, MonsterInfo> {
-    storage::borrow_mut_field(&mut self.id, b"monster_info")
+  public(package) fun encounter_trigger(self: &mut Schema): &mut StorageMap<Position, bool> {
+    storage::borrow_mut_field(&mut self.id, b"encounter_trigger")
+  }
+
+  public fun borrow_encounter(self: &Schema): &StorageMap<address, EncounterInfo> {
+    storage::borrow_field(&self.id, b"encounter")
+  }
+
+  public(package) fun encounter(self: &mut Schema): &mut StorageMap<address, EncounterInfo> {
+    storage::borrow_mut_field(&mut self.id, b"encounter")
   }
 
   public(package) fun create(ctx: &mut TxContext): Schema {
     let mut id = object::new(ctx);
     storage::add_field<StorageMap<address, bool>>(&mut id, b"player", storage_map::new(b"player", ctx));
-    storage::add_field<StorageMap<address, bool>>(&mut id, b"encounterable", storage_map::new(b"encounterable", ctx));
     storage::add_field<StorageMap<address, bool>>(&mut id, b"moveable", storage_map::new(b"moveable", ctx));
-    storage::add_field<StorageMap<address, bool>>(&mut id, b"obstruction", storage_map::new(b"obstruction", ctx));
-    storage::add_field<StorageMap<address, bool>>(&mut id, b"encounter_trigger", storage_map::new(b"encounter_trigger", ctx));
+    storage::add_field<StorageMap<address, Position>>(&mut id, b"position", storage_map::new(b"position", ctx));
+    storage::add_field<StorageMap<Position, bool>>(&mut id, b"obstruction", storage_map::new(b"obstruction", ctx));
     storage::add_field<StorageMap<address, MonsterType>>(&mut id, b"monster", storage_map::new(b"monster", ctx));
     storage::add_field<StorageMap<address, address>>(&mut id, b"owned_by", storage_map::new(b"owned_by", ctx));
     storage::add_field<StorageValue<MapConfig>>(&mut id, b"map_config", storage_value::new(b"map_config", ctx));
-    storage::add_field<StorageMap<address, Position>>(&mut id, b"position", storage_map::new(b"position", ctx));
-    storage::add_field<StorageMap<address, MonsterInfo>>(&mut id, b"monster_info", storage_map::new(b"monster_info", ctx));
+    storage::add_field<StorageMap<address, bool>>(&mut id, b"encounterable", storage_map::new(b"encounterable", ctx));
+    storage::add_field<StorageMap<Position, bool>>(&mut id, b"encounter_trigger", storage_map::new(b"encounter_trigger", ctx));
+    storage::add_field<StorageMap<address, EncounterInfo>>(&mut id, b"encounter", storage_map::new(b"encounter", ctx));
     Schema { id }
   }
 
@@ -145,20 +145,16 @@
     self.borrow_player().get(key)
   }
 
-  public fun get_encounterable(self: &Schema, key: address): &bool {
-    self.borrow_encounterable().get(key)
-  }
-
   public fun get_moveable(self: &Schema, key: address): &bool {
     self.borrow_moveable().get(key)
   }
 
-  public fun get_obstruction(self: &Schema, key: address): &bool {
-    self.borrow_obstruction().get(key)
+  public fun get_position(self: &Schema, key: address): &Position {
+    self.borrow_position().get(key)
   }
 
-  public fun get_encounter_trigger(self: &Schema, key: address): &bool {
-    self.borrow_encounter_trigger().get(key)
+  public fun get_obstruction(self: &Schema, key: Position): &bool {
+    self.borrow_obstruction().get(key)
   }
 
   public fun get_monster(self: &Schema, key: address): &MonsterType {
@@ -173,12 +169,16 @@
     self.borrow_map_config().get()
   }
 
-  public fun get_position(self: &Schema, key: address): &Position {
-    self.borrow_position().get(key)
+  public fun get_encounterable(self: &Schema, key: address): &bool {
+    self.borrow_encounterable().get(key)
   }
 
-  public fun get_monster_info(self: &Schema, key: address): &MonsterInfo {
-    self.borrow_monster_info().get(key)
+  public fun get_encounter_trigger(self: &Schema, key: Position): &bool {
+    self.borrow_encounter_trigger().get(key)
+  }
+
+  public fun get_encounter(self: &Schema, key: address): &EncounterInfo {
+    self.borrow_encounter().get(key)
   }
 
   // =========================================================================================================
