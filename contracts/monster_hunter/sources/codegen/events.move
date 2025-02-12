@@ -20,7 +20,7 @@
 
   use monster_hunter::position::Position;
 
-  use monster_hunter::monster_info::MonsterInfo;
+  use monster_hunter::encounter_info::EncounterInfo;
 
   use monster_hunter::monster_catch_attempt_event::MonsterCatchAttemptEvent;
 

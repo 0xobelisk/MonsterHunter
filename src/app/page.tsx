@@ -44,7 +44,7 @@ export default function Home() {
       });
 
       // Subscribe to multiple event types
-      const sub = await dubhe.subscribe(['position', 'monster_info', 'monster_catch_attempt_event', 'player'], data => {
+      const sub = await dubhe.subscribe(['position', 'encounter', 'monster_catch_attempt_event', 'player'], data => {
         console.log('Received real-time data:', data);
 
         // Handle player position updates
@@ -87,7 +87,7 @@ export default function Home() {
         }
 
         // Handle monster encounter updates
-        else if (data.name === 'monster_info') {
+        else if (data.name === 'encounter') {
           const shouldLock = !!data.value;
           setMonster({ exist: shouldLock });
           setHero(prev => ({ ...prev, lock: shouldLock }));
@@ -220,7 +220,7 @@ export default function Home() {
       let encounterContain = false;
       let monsterInfo = await dubhe.state({
         tx: entityEncounterableTx,
-        schema: 'monster_info',
+        schema: 'encounter',
         params: [entityEncounterableTx.object(SCHEMA_ID), entityEncounterableTx.pure.address(dubhe.getAddress())],
       });
       if (monsterInfo !== undefined) {

@@ -243,7 +243,7 @@ export function Map({ width, height, terrain, players, type, ele_description, ev
         let enconterTx = new Transaction();
         const encounter_info = await dubhe.state({
           tx: enconterTx,
-          schema: 'monster_info',
+          schema: 'encounter',
           params: [enconterTx.object(SCHEMA_ID), enconterTx.pure.address(dubhe.getAddress())],
         });
         let encounter_contain = false;

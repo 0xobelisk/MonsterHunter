@@ -57,7 +57,7 @@
 //         let expect_monster_address = @0xaa5854249f55f5992873c084541ac3731edf6bce7af20ff5349938511c84e06a;
 //         let expect_monster_type = monster_hunter::monster_type::new_rat();
 //         assert!(schema.monster().get(expect_monster_address) == expect_monster_type);
-//         assert!(schema.monster_info().get(ctx.sender()) == monster_hunter::monster_info::new(expect_monster_address, 0));
+//         assert!(schema.encounter().get(ctx.sender()) == monster_hunter::encounter_info::new(expect_monster_address, 0));
 //
 //         // Cannot move during an encounter
 //         map_system::move_position(&mut schema, &random, direction::new_south(), ctx);

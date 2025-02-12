@@ -32,14 +32,11 @@
         y.range_do!(height, |y| {
             x.range_do!(width, |x| {
                 let terrain = terrains[y][x];
-                let entity_key = monster_hunter::map_system::position_to_address(x, y);
                 let position = monster_hunter::position::new(x, y);
                 if (terrain == monster_hunter::terrain_type::new_boulder()) {
-                    schema.position().set(entity_key, position);
-                    schema.obstruction().set(entity_key, true);
+                    schema.obstruction().set(position, true);
                 } else if (terrain == monster_hunter::terrain_type::new_tall_grass()) {
-                    schema.position().set(entity_key, position);
-                    schema.encounter_trigger().set(entity_key, true);
+                    schema.encounter_trigger().set(position, true);
                 }
             });
         });

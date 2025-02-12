@@ -40,6 +40,14 @@
 
   #[error]
 
+  const InEncounter: vector<u8> = b"This player is already in an encounter";
+
+  public fun in_encounter_error(condition: bool) {
+    assert!(condition, InEncounter)
+  }
+
+  #[error]
+
   const NotInEncounter: vector<u8> = b"This player is not in an encounter";
 
   public fun not_in_encounter_error(condition: bool) {

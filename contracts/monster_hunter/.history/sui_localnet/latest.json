@@ -1,20 +1,20 @@
 {
   "projectName": "monster_hunter",
   "network": "localnet",
-  "packageId": "0xfa3d2ac3c4c2b36be5ce18ecdf6deb76e615215d339678776124f3e582315100",
-  "schemaId": "0x6eea69c01cabdf99079c1615ac4eb2226869aab0f869723baae146209b4be32f",
+  "packageId": "0xa804c9a675b05cd0d32e32c365a43f087d30230dd73e3712b4449c254894eeb1",
+  "schemaId": "node",
   "schemas": {
     "player": "StorageMap<address, bool>",
-    "encounterable": "StorageMap<address, bool>",
     "moveable": "StorageMap<address, bool>",
-    "obstruction": "StorageMap<address, bool>",
-    "encounter_trigger": "StorageMap<address, bool>",
-    "monster": "StorageMap<address, MonsterType>",
-    "owned_by": "StorageMap<address, address>",
-    "map_config": "StorageValue<MapConfig>",
     "position": "StorageMap<address, Position>",
-    "monster_info": "StorageMap<address, MonsterInfo>"
+    "obstruction": "StorageMap<Position, bool>",
+    "map_config": "StorageValue<MapConfig>",
+    "encounterable": "StorageMap<address, bool>",
+    "encounter_trigger": "StorageMap<Position, bool>",
+    "encounter": "StorageMap<address, EncounterInfo>",
+    "monster": "StorageMap<address, MonsterType>",
+    "owned_by": "StorageMap<address, address>"
   },
-  "upgradeCap": "0xfdac8304b6663f7c6fcbbf587517c3cca7290e17e6210c04e86004c59b553d4e",
+  "upgradeCap": "0xb37d400ac56590bd31cb646986fb1da99478a920ef6c70ffa193830ab5c0d286",
   "version": 1
 }
