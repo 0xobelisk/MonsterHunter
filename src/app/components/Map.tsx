@@ -369,9 +369,7 @@ export function Map({ width, height, terrain, players, type, ele_description, ev
     if (direction === 'left') {
       return heroPosition.left - stepLength < 0;
     } else if (direction === 'right') {
-      // FIXME
-      // return heroPosition.left + oDiv.clientWidth + stepLength > map.clientWidth;
-      return heroPosition.left + 2 * stepLength > stepLength * 32;
+      return heroPosition.left + 2 * stepLength > stepLength * width;
     } else if (direction === 'top') {
       return heroPosition.top - stepLength < 0;
     } else if (direction === 'bottom') {
@@ -425,7 +423,7 @@ export function Map({ width, height, terrain, players, type, ele_description, ev
       x += 1;
     }
 
-    if (x < 0 || x >= terrain.length || y < 0 || y >= terrain[0].length) {
+    if (x < 0 || x >= height || y < 0 || y >= width) {
       return true;
     }
 
@@ -507,7 +505,6 @@ export function Map({ width, height, terrain, players, type, ele_description, ev
 
   useEffect(() => {
     const onKeyDown = async (ev: any) => {
-      // var ev = ev || event;
       var keyCode = ev.keyCode;
       switch (keyCode) {
         case 37:
@@ -547,7 +544,6 @@ export function Map({ width, height, terrain, players, type, ele_description, ev
     };
 
     const onKeyUp = (ev: any) => {
-      // var ev = ev || event;
       var keyCode = ev.keyCode;
 
       switch (keyCode) {

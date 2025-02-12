@@ -393,7 +393,6 @@ export default function Home() {
           metadata={contractMetadata}
         />
         <div className="w-[calc(20vw-1rem)] max-h-screen ml-2.5">
-          <></>
         </div>
       </div>
       <DialogModal />
