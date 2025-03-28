@@ -49,18 +49,18 @@
 //         let ctx = test_scenario::ctx(&mut scenario);
 //         map_system::register(&mut schema, 0, 1, ctx);
 //
-//         map_system::move_position(&mut schema, &random, direction::new_east(), ctx);
-//         assert!(schema.position()[ctx.sender()] == position::new(1, 1));
+//         map_system::move_position(&mut schema, &random, monster_hunter_direction::new_east(), ctx);
+//         assert!(schema.position()[ctx.sender()] == monster_hunter_position::new(1, 1));
 //
-//         map_system::move_position(&mut schema, &random, direction::new_east(), ctx);
-//         assert!(schema.position()[ctx.sender()] == position::new(2, 1));
+//         map_system::move_position(&mut schema, &random, monster_hunter_direction::new_east(), ctx);
+//         assert!(schema.position()[ctx.sender()] == monster_hunter_position::new(2, 1));
 //         let expect_monster_address = @0xaa5854249f55f5992873c084541ac3731edf6bce7af20ff5349938511c84e06a;
 //         let expect_monster_type = monster_hunter::monster_type::new_rat();
 //         assert!(schema.monster().get(expect_monster_address) == expect_monster_type);
-//         assert!(schema.encounter().get(ctx.sender()) == monster_hunter::encounter_info::new(expect_monster_address, 0));
+//         assert!(schema.encounter().get(ctx.sender()) == monster_hunter::monster_hunter_encounter_info::new(expect_monster_address, 0));
 //
 //         // Cannot move during an encounter
-//         map_system::move_position(&mut schema, &random, direction::new_south(), ctx);
+//         map_system::move_position(&mut schema, &random, monster_hunter_direction::new_south(), ctx);
 //
 //         test_scenario::return_shared(random);
 //         test_scenario::return_shared(schema);
@@ -87,7 +87,7 @@
 //         // y = 5, x = 3 => TerrainType::Boulder
 //         assert!(terrains[5][3] == monster_hunter::terrain_type::new_boulder());
 //         // Cannot move during an encounter
-//         map_system::move_position(&mut schema, &random, direction::new_east(), ctx);
+//         map_system::move_position(&mut schema, &random, monster_hunter_direction::new_east(), ctx);
 //
 //         test_scenario::return_shared(random);
 //         test_scenario::return_shared(schema);

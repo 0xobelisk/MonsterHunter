@@ -1,4 +1,4 @@
-import { DubheConfig } from '@0xobelisk/sui-common';
+import { DubheConfig, storage } from '@0xobelisk/sui-common';
 
 export const dubheConfig = {
   name: 'monster_hunter',
@@ -13,29 +13,29 @@ export const dubheConfig = {
     EncounterInfo: { monster: 'address', catch_attempts: 'u64' },
   },
   errors: {
-    CannotMove: 'This entity cannot move',
-    AlreadyRegistered: 'This address is already registered',
-    SpaceObstructed: 'This space is obstructed',
-    InEncounter: 'This player is already in an encounter',
-    NotInEncounter: 'This player is not in an encounter',
+    cannot_move: 'This entity cannot move',
+    already_registered: 'This address is already registered',
+    space_obstructed: 'This space is obstructed',
+    in_encounter: 'This player is already in an encounter',
+    not_in_encounter: 'This player is not in an encounter',
   },
   events: {
-    MonsterCatchAttempt: {
+    monster_catch_attempt: {
       player: 'address',
       monster: 'address',
       result: 'MonsterCatchResult',
     },
   },
   schemas: {
-    player: 'StorageMap<address, bool>',
-    moveable: 'StorageMap<address, bool>',
-    position: 'StorageMap<address, Position>',
-    obstruction: 'StorageMap<Position, bool>',
-    map_config: 'StorageValue<MapConfig>',
-    encounterable: 'StorageMap<address, bool>',
-    encounter_trigger: 'StorageMap<Position, bool>',
-    encounter: 'StorageMap<address, EncounterInfo>',
-    monster: 'StorageMap<address, MonsterType>',
-    owned_by: 'StorageMap<address, address>',
+    player: storage('address', 'bool'),
+    moveable: storage('address', 'bool'),
+    position: storage('address', 'Position'),
+    obstruction: storage('Position', 'bool'),
+    map_config: storage('MapConfig'),
+    encounterable: storage('address', 'bool'),
+    encounter_trigger: storage('Position', 'bool'),
+    encounter: storage('address', 'EncounterInfo'),
+    monster: storage('address', 'MonsterType'),
+    owned_by: storage('address', 'address'),
   },
 } as DubheConfig;

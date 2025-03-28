@@ -1,4 +1,4 @@
-module monster_hunter::migrate {
+module monster_hunter::monster_hunter_migrate {
 
   const ON_CHAIN_VERSION: u32 = 1;
 

@@ -23,9 +23,9 @@
 //
 //         let ctx = test_scenario::ctx(&mut scenario);
 //         map_system::register(&mut schema, 1, 1, ctx);
-//         map_system::move_position(&mut schema, &random, direction::new_east(), ctx);
-//         map_system::move_position(&mut schema, &random, direction::new_south(), ctx);
-//         assert!(schema.position().get(ctx.sender()) == position::new(2, 2));
+//         map_system::move_position(&mut schema, &random, monster_hunter_direction::new_east(), ctx);
+//         map_system::move_position(&mut schema, &random, monster_hunter_direction::new_south(), ctx);
+//         assert!(schema.position().get(ctx.sender()) == monster_hunter_position::new(2, 2));
 //
 //         // Cannot move during an encounter
 //         let encounter_info = schema.encounter()[ctx.sender()];
@@ -39,8 +39,8 @@
 //         assert!(schema.encounter().contains(ctx.sender()) == false);
 //         assert!(schema.monster().contains(encounter_info.get_monster()) == false);
 //
-//         map_system::move_position(&mut schema, &random, direction::new_east(), ctx);
-//         map_system::move_position(&mut schema, &random, direction::new_east(), ctx);
+//         map_system::move_position(&mut schema, &random, monster_hunter_direction::new_east(), ctx);
+//         map_system::move_position(&mut schema, &random, monster_hunter_direction::new_east(), ctx);
 //
 //         encounter_system::throw_ball(&mut schema, &random, ctx);
 //         let expect_monster_address = @0x5cb82e64ba7208ca0ddb005cb0b4c451b113d1533c7b57c9198c8955992b0611;
@@ -69,8 +69,8 @@
 //
 //         let ctx = test_scenario::ctx(&mut scenario);
 //         map_system::register(&mut schema, 1, 1, ctx);
-//         map_system::move_position(&mut schema, &random, direction::new_east(), ctx);
-//         map_system::move_position(&mut schema, &random, direction::new_south(), ctx);
+//         map_system::move_position(&mut schema, &random, monster_hunter_direction::new_east(), ctx);
+//         map_system::move_position(&mut schema, &random, monster_hunter_direction::new_south(), ctx);
 //
 //         let encounter_info = schema.encounter()[ctx.sender()];
 //         // Cannot move during an encounter

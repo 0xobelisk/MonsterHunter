@@ -1,6 +1,6 @@
-#[test_only]module monster_hunter::init_test {
+#[test_only]module monster_hunter::monster_hunter_init_test {
 
-  use monster_hunter::dapp_schema::Dapp;
+  use monster_hunter::monster_hunter_dapp_schema::Dapp;
 
   use sui::clock;
 
@@ -12,7 +12,7 @@
     let mut scenario = test_scenario::begin(sender);
     let ctx = test_scenario::ctx(&mut scenario);
     let clock = clock::create_for_testing(ctx);
-    monster_hunter::genesis::run(&clock, ctx);
+    monster_hunter::monster_hunter_genesis::run(&clock, ctx);
     clock::destroy_for_testing(clock);
     test_scenario::next_tx(&mut scenario,sender);
     let dapp = test_scenario::take_shared<Dapp>(&scenario);

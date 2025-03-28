@@ -1,11 +1,11 @@
-#[allow(lint(share_owned), unused_let_mut)]module monster_hunter::deploy_hook {
-  use monster_hunter::schema::Schema;
+#[allow(lint(share_owned), unused_let_mut)]module monster_hunter::monster_hunter_deploy_hook {
+  use monster_hunter::monster_hunter_schema::Schema;
 
   public entry fun run(schema: &mut Schema, _ctx: &mut TxContext) {
 
-			let  o = monster_hunter::terrain_type::new_none();
-            let  t = monster_hunter::terrain_type::new_tall_grass();
-            let  b = monster_hunter::terrain_type::new_boulder();
+			let  o = monster_hunter::monster_hunter_terrain_type::new_none();
+            let  t = monster_hunter::monster_hunter_terrain_type::new_tall_grass();
+            let  b = monster_hunter::monster_hunter_terrain_type::new_boulder();
 			let terrains = vector[
                 vector [o, o, o, o, o, o, t, o, o, o, o, o, o, o, o],
                 vector [o, o, t, o, o, o, o, o, t, o, o, o, o, b, o],
@@ -27,15 +27,15 @@
         let x: u64 = 0;
         let y: u64 = 0;
 
-        schema.map_config().set(monster_hunter::map_config::new(width, height, terrains));
+        schema.map_config().set(monster_hunter::monster_hunter_map_config::new(width, height, terrains));
 
         y.range_do!(height, |y| {
             x.range_do!(width, |x| {
                 let terrain = terrains[y][x];
-                let position = monster_hunter::position::new(x, y);
-                if (terrain == monster_hunter::terrain_type::new_boulder()) {
+                let position = monster_hunter::monster_hunter_position::new(x, y);
+                if (terrain == monster_hunter::monster_hunter_terrain_type::new_boulder()) {
                     schema.obstruction().set(position, true);
-                } else if (terrain == monster_hunter::terrain_type::new_tall_grass()) {
+                } else if (terrain == monster_hunter::monster_hunter_terrain_type::new_tall_grass()) {
                     schema.encounter_trigger().set(position, true);
                 }
             });

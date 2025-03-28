@@ -1,4 +1,4 @@
-module monster_hunter::dapp_system {
+module monster_hunter::monster_hunter_dapp_system {
 
   use std::ascii::String;
 
@@ -8,11 +8,11 @@ module monster_hunter::dapp_system {
 
   use sui::clock::Clock;
 
-  use monster_hunter::dapp_schema;
+  use monster_hunter::monster_hunter_dapp_schema;
 
-  use monster_hunter::dapp_metadata;
+  use monster_hunter::monster_hunter_dapp_metadata;
 
-  use monster_hunter::dapp_schema::Dapp;
+  use monster_hunter::monster_hunter_dapp_schema::Dapp;
 
   public struct DappKey has drop {}
 
@@ -21,10 +21,10 @@ module monster_hunter::dapp_system {
   }
 
   public(package) fun create(name: String, description: String, clock: &Clock, ctx: &mut TxContext): Dapp {
-    let mut dapp = dapp_schema::create(ctx);
+    let mut dapp = monster_hunter_dapp_schema::create(ctx);
     assert!(!dapp.borrow_metadata().contains(), 0);
     dapp.metadata().set(
-            dapp_metadata::new(
+            monster_hunter_dapp_metadata::new(
                 name,
                 description,
                 ascii::string(b""),
@@ -55,7 +55,7 @@ module monster_hunter::dapp_system {
     assert!(admin == option::some(ctx.sender()), 0);
     let created_at = dapp.metadata().get().get_created_at();
     dapp.metadata().set(
-            dapp_metadata::new(
+            monster_hunter_dapp_metadata::new(
                 name,
                 description,
                 icon_url,
