@@ -1,9 +1,9 @@
 {
   "projectName": "dubhe-framework",
   "network": "localnet",
-  "packageId": "0xc7b510e3baa74dd48b15d1cef31fb4d0a0cabb461ee218b9f6ce393d60bcacf6",
+  "packageId": "0xe14a2c8293c3b5f2c5fdded6ab8f1583084b687ff7174785ed7f4618ab3aba54",
   "schemaId": "",
   "schemas": {},
-  "upgradeCap": "0x42381bd0e29984d0c762617e73afdac4758df05fbaa952c993474bee9134b899",
+  "upgradeCap": "0x469a260d30628d48424a6824278cdd8786287defb8892cd437458f7b30e43f3d",
   "version": 1
 }

@@ -303,28 +303,28 @@ export function Map({ width, height, terrain, players, type, ele_description, ev
       switch (historyDirection[2]) {
         case 'left':
           console.log('Processing move: left');
-          direction = (await dubhe.tx.direction.new_west({
+          direction = (await dubhe.tx.monster_hunter_direction.new_west({
             tx: stepTxB,
             isRaw: true,
           })) as TransactionResult;
           break;
         case 'top':
           console.log('Processing move: top');
-          direction = (await dubhe.tx.direction.new_north({
+          direction = (await dubhe.tx.monster_hunter_direction.new_north({
             tx: stepTxB,
             isRaw: true,
           })) as TransactionResult;
           break;
         case 'right':
           console.log('Processing move: right');
-          direction = (await dubhe.tx.direction.new_east({
+          direction = (await dubhe.tx.monster_hunter_direction.new_east({
             tx: stepTxB,
             isRaw: true,
           })) as TransactionResult;
           break;
         case 'bottom':
           console.log('Processing move: bottom');
-          direction = (await dubhe.tx.direction.new_south({
+          direction = (await dubhe.tx.monster_hunter_direction.new_south({
             tx: stepTxB,
             isRaw: true,
           })) as TransactionResult;

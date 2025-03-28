@@ -2,10 +2,14 @@
 
 ```bash
 1. install sui <https://docs.sui.io/build/install>
-2. cd dubhe-nextjs-template folder
+2. cd MonsterHunter folder
 3. pnpm install
+# start localnet
 4. open new window && pnpm start:localnet
-5. open new window && pnpm dev
+# deploy contract and start indexer
+5. open new window && pnpm setup:localnet
+# start website
+6. open new window && pnpm dev
 ```
 
 Environment: node.js (v18.20.0+) ([download](https://nodejs.org/en/download/))
