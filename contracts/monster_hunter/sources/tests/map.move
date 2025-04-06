@@ -1,32 +1,26 @@
-// #[test_only]
-// module monster_hunter::map_test {
-//     use monster_hunter::terrain_type::TerrainType;
-//     use monster_hunter::schema::Schema;
-//     use monster_hunter::position;
-//     use sui::random::Random;
-//     use sui::random;
-//     use sui::test_scenario;
-//     use monster_hunter::map_system;
-//     use monster_hunter::direction;
-//     use monster_hunter::init_test;
-//
-//     #[test]
-//     public fun register(){
-//        let (mut scenario, dapp) = init_test::deploy_dapp_for_testing(@0xA);
-//         let mut schema = test_scenario::take_shared<Schema>(&scenario);
-//
-//         let ctx = test_scenario::ctx(&mut scenario);
-//         map_system::register(&mut schema, 0, 0, ctx);
-//
-//         assert!(schema.player().contains(ctx.sender()));
-//         assert!(schema.moveable().contains(ctx.sender()));
-//         assert!(schema.encounterable().contains(ctx.sender()));
-//         assert!(schema.position().contains(ctx.sender()));
-//
-//         test_scenario::return_shared(schema);
-//         dapp.distroy_dapp_for_testing();
-//         scenario.end();
-//     }
+#[test_only]
+module monster_hunter::map_test;
+use monster_hunter::monster_hunter_schema::Schema;
+use sui::test_scenario;
+use monster_hunter::map_system;
+use monster_hunter::monster_hunter_init_test;
+
+#[test]
+public fun register(){
+      let mut scenario= monster_hunter_init_test::deploy_dapp_for_testing(@0xA);
+      let mut schema = test_scenario::take_shared<Schema>(&scenario);
+
+      let ctx = test_scenario::ctx(&mut scenario);
+      map_system::register(&mut schema, 0, 0, ctx);
+
+      assert!(schema.player().contains(ctx.sender()));
+      assert!(schema.moveable().contains(ctx.sender()));
+      assert!(schema.encounterable().contains(ctx.sender()));
+      assert!(schema.position().contains(ctx.sender()));
+
+      test_scenario::return_shared(schema);
+      scenario.end();
+}
 //
 //     #[test]
 //     #[expected_failure(abort_code = monster_hunter::errors::CannotMove)]
