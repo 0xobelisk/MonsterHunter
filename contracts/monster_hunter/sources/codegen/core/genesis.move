@@ -7,14 +7,13 @@
   use monster_hunter::monster_hunter_dapp_system;
 
   public entry fun run(clock: &Clock, ctx: &mut TxContext) {
-    // Create a dapp.
-    let mut dapp = monster_hunter_dapp_system::create(string(b"monster_hunter"),string(b"monster_hunter contract"), clock , ctx);
     // Create schemas
     let mut schema = monster_hunter::monster_hunter_schema::create(ctx);
+    // Setup default storage
+    monster_hunter_dapp_system::create(&mut schema, string(b"monster_hunter"),string(b"monster_hunter contract"), clock , ctx);
     // Logic that needs to be automated once the contract is deployed
     monster_hunter::monster_hunter_deploy_hook::run(&mut schema, ctx);
     // Authorize schemas and public share objects
-    dapp.add_schema(schema);
-    sui::transfer::public_share_object(dapp);
+    sui::transfer::public_share_object(schema);
   }
 }
