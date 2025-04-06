@@ -1,6 +1,6 @@
 'use client';
 
-import { loadMetadata, Dubhe, Transaction } from '@0xobelisk/sui-client';
+import { loadMetadata, Dubhe, Transaction, SubscriptionKind } from '@0xobelisk/sui-client';
 import { useEffect, useState } from 'react';
 import { useAtom } from 'jotai';
 import { Map, DialogModal, PVPModal } from '@/app/components';
@@ -44,80 +44,102 @@ export default function Home() {
       });
 
       // Subscribe to multiple event types
-      const sub = await dubhe.subscribe(['position', 'encounter', 'monster_catch_attempt_event', 'player'], data => {
-        console.log('Received real-time data:', data);
+      const sub = await dubhe.subscribe(
+        [
+          {
+            kind: SubscriptionKind.Schema,
+            name: 'position',
+          },
+          {
+            kind: SubscriptionKind.Schema,
+            name: 'encounter',
+          },
+          {
+            kind: SubscriptionKind.Event,
+            name: 'monster_catch_attempt',
+            sender: dubhe.getAddress(),
+          },
+          {
+            kind: SubscriptionKind.Schema,
+            name: 'player',
+          },
+        ],
+        data => {
+          console.log('Received real-time data:', data);
 
-        // Handle player position updates
-        if (data.name === 'position') {
-          const position = data.value;
-          const playerAddress = data.key1;
+          // Handle player position updates
+          if (data.name === 'position') {
+            const position = data.value;
+            const playerAddress = data.key1;
 
-          // Update hero position
-          setHero(prev => ({
-            ...prev,
-            position: {
-              left: position.x * STEP_LENGTH,
-              top: position.y * STEP_LENGTH,
-            },
-          }));
+            // Update hero position
+            setHero(prev => ({
+              ...prev,
+              position: {
+                left: position.x * STEP_LENGTH,
+                top: position.y * STEP_LENGTH,
+              },
+            }));
 
-          // Update other players' positions
-          if (allPlayers.data.find(p => p.key1 === playerAddress)) {
-            setPlayers(prev => {
-              const newPlayers = [...prev];
-              const playerIndex = newPlayers.findIndex(p => p.address === playerAddress);
+            // Update other players' positions
+            if (allPlayers.data.find(p => p.key1 === playerAddress)) {
+              setPlayers(prev => {
+                const newPlayers = [...prev];
+                const playerIndex = newPlayers.findIndex(p => p.address === playerAddress);
 
-              if (playerIndex > -1) {
-                newPlayers[playerIndex].position = {
-                  left: position.x * STEP_LENGTH,
-                  top: position.y * STEP_LENGTH,
-                };
-              } else {
-                newPlayers.push({
-                  address: playerAddress,
-                  position: {
+                if (playerIndex > -1) {
+                  newPlayers[playerIndex].position = {
                     left: position.x * STEP_LENGTH,
                     top: position.y * STEP_LENGTH,
-                  },
-                });
-              }
-              return newPlayers;
+                  };
+                } else {
+                  newPlayers.push({
+                    address: playerAddress,
+                    position: {
+                      left: position.x * STEP_LENGTH,
+                      top: position.y * STEP_LENGTH,
+                    },
+                  });
+                }
+                return newPlayers;
+              });
+            }
+          }
+
+          // Handle monster encounter updates
+          else if (data.name === 'encounter') {
+            const shouldLock = !!data.value;
+            setMonster({ exist: shouldLock });
+            setHero(prev => ({ ...prev, lock: shouldLock }));
+
+            if (shouldLock) {
+              setSendTxLog({
+                display: true,
+                content: 'Have monster',
+                yesContent: 'Throw',
+                noContent: 'Run',
+              });
+            } else if (data.value === null) {
+              setSendTxLog(prev => ({ ...prev, display: false }));
+            }
+          }
+
+          // Handle monster catch attempt results
+          else if (data.name === 'monster_catch_attempt') {
+            const result = Object.keys(data.value.result)[0];
+            console.log('Monster catch attempt event received', data.value.result);
+            toast('Monster catch attempt event received', {
+              description: `Result: ${CATCH_RESULTS[result]}`,
             });
+
+            if (!data.value.result.Missed) {
+              setSendTxLog(prev => ({ ...prev, display: false }));
+              setMonster({ exist: false });
+              setHero(prev => ({ ...prev, lock: false }));
+            }
           }
-        }
-
-        // Handle monster encounter updates
-        else if (data.name === 'encounter') {
-          const shouldLock = !!data.value;
-          setMonster({ exist: shouldLock });
-          setHero(prev => ({ ...prev, lock: shouldLock }));
-
-          if (shouldLock) {
-            setSendTxLog({
-              display: true,
-              content: 'Have monster',
-              yesContent: 'Throw',
-              noContent: 'Run',
-            });
-          } else if (data.value === null) {
-            setSendTxLog(prev => ({ ...prev, display: false }));
-          }
-        }
-
-        // Handle monster catch attempt results
-        else if (data.name === 'monster_catch_attempt_event') {
-          const result = Object.keys(data.value.result)[0];
-          toast('Monster catch attempt event received', {
-            description: `Result: ${CATCH_RESULTS[result]}`,
-          });
-
-          if (!data.value.result.Missed) {
-            setSendTxLog(prev => ({ ...prev, display: false }));
-            setMonster({ exist: false });
-            setHero(prev => ({ ...prev, lock: false }));
-          }
-        }
-      });
+        },
+      );
       setSubscription(sub);
     } catch (error) {
       console.error('Failed to subscribe to events:', error);
@@ -392,8 +414,7 @@ export default function Home() {
           map_type={mapData.map_type}
           metadata={contractMetadata}
         />
-        <div className="w-[calc(20vw-1rem)] max-h-screen ml-2.5">
-        </div>
+        <div className="w-[calc(20vw-1rem)] max-h-screen ml-2.5"></div>
       </div>
       <DialogModal />
       <PVPModal sendTxLog={sendTxLog} metadata={contractMetadata} />
