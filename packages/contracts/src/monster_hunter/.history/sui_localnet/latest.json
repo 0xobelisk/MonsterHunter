@@ -1,0 +1,54 @@
+{
+  "projectName": "monster_hunter",
+  "network": "localnet",
+  "packageId": "0x8c759a0e22007834effe2af3f41d8d4a5f3bb794fd52ae17f250a272fb7c7e28",
+  "dappHub": "",
+  "components": {
+    "player": {},
+    "moveable": {},
+    "obstruction": {},
+    "position": {
+      "fields": {
+        "x": "u64",
+        "y": "u64"
+      }
+    },
+    "map_config": {
+      "fields": {
+        "width": "u64",
+        "height": "u64",
+        "terrain": "vector<u32>"
+      },
+      "keys": []
+    },
+    "encounterable": {},
+    "encounter_trigger": {},
+    "encounter": {
+      "fields": {
+        "monster": "address",
+        "catch_attempts": "u64"
+      }
+    },
+    "monster": {
+      "fields": {
+        "id": "address",
+        "monster_type": "MonsterType"
+      },
+      "keys": [
+        "id"
+      ]
+    },
+    "owned_by": "address",
+    "monster_catch_attempt": {
+      "fields": {
+        "monster": "address",
+        "result": "MonsterCatchResult"
+      },
+      "keys": [
+        "monster"
+      ]
+    }
+  },
+  "upgradeCap": "0x74f9a48dc138de305047bd638ba246496f66e8eae7ef6dbc7f4c5de51e2eb87f",
+  "version": 1
+}
